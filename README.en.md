@@ -16,7 +16,7 @@ Hotkeys are configurable, including modifier-only combinations. Klats works with
 
 ## Install
 
-1. Download `Клац-0.1.0.dmg` from [Releases](https://github.com/belokoz/klats/releases/latest), open it and drag Клац to Applications.
+1. Download `Klats-0.1.0.dmg` from [Releases](https://github.com/belokoz/klats/releases/latest), open it and drag Клац to Applications.
 2. On first launch macOS says it cannot verify the developer: there is no paid Apple account behind the project. Open System Settings → Privacy & Security, scroll down and click **Open Anyway**. Once.
 3. Klats asks for the Accessibility permission. It needs it to copy the selected text and paste the fixed one back. Enable Klats in the list, return to the welcome window and try it on the sample field.
 

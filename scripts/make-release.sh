@@ -12,7 +12,8 @@ mkdir -p "$STAGE"
 cp -R "build/Клац.app" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 
-DMG="build/Клац-$VERSION.dmg"
+# GitHub strips non-ASCII characters from release asset names, so the file is Latin; the volume inside is «Клац».
+DMG="build/Klats-$VERSION.dmg"
 rm -f "$DMG"
 hdiutil create -volname "Клац" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
 echo "==> $DMG"
