@@ -1,0 +1,75 @@
+/* Menu */
+"Сменить раскладку выделенного" = "Convert selection layout";
+"Сменить регистр выделенного" = "Change selection case";
+"Приостановить" = "Pause";
+"Возобновить" = "Resume";
+"Настройки…" = "Settings…";
+"О программе Клац" = "About Klats";
+"Открыть журнал" = "Open log";
+"Завершить Клац" = "Quit Klats";
+"Клацу нужно разрешение «Универсальный доступ»" = "Klats needs the Accessibility permission";
+"Выдать разрешение…" = "Grant permission…";
+"Клац приостановлен" = "Klats is paused";
+"Защищённый ввод включён: хоткеи временно недоступны" = "Secure input is on: hotkeys are unavailable for now";
+
+/* Settings */
+"Настройки Клац" = "Klats Settings";
+"Горячие клавиши" = "Hotkeys";
+"Сменить раскладку" = "Convert layout";
+"Сменить регистр" = "Change case";
+"Нажмите на поле и введите новое сочетание. Сочетание из одних модификаторов срабатывает, когда вы отпускаете клавиши." = "Click a field and type a new combination. A modifier-only combination fires when you let the keys go.";
+"Раскладка" = "Layout";
+"Переключать раскладку после конвертации" = "Switch layout after converting";
+"Пара раскладок" = "Layout pair";
+"Первая раскладка" = "First layout";
+"Вторая раскладка" = "Second layout";
+"Нужны две раскладки" = "Two layouts required";
+"Регистр" = "Case";
+"Инвертировать" = "Invert";
+"Все строчные" = "All lowercase";
+"Общие" = "General";
+"Запускать при входе в систему" = "Launch at login";
+"Универсальный доступ" = "Accessibility";
+"Разрешение выдано" = "Permission granted";
+"Не задано" = "Not set";
+"Введите сочетание…" = "Type a combination…";
+"Очистить сочетание" = "Clear combination";
+"Уже назначено на другое действие" = "Already assigned to another action";
+"Занято системой. Выберите другое." = "Reserved by the system. Pick another.";
+
+/* Onboarding */
+"Добро пожаловать в Клац" = "Welcome to Klats";
+"Исправляет раскладку выделенного текста одним нажатием." = "Fixes the layout of selected text with one press.";
+"Разрешите Клацу работать с текстом" = "Let Klats work with text";
+"Универсальный доступ включён. Отключить его можно в любой момент в системных настройках." = "Accessibility is on. You can turn it off any time in System Settings.";
+"Чтобы скопировать выделенный текст и вставить исправленный, нужно разрешение «Универсальный доступ». Клац ничего никуда не отправляет: сетевого кода в нём нет." = "To copy the selected text and paste it back fixed, Klats needs the Accessibility permission. Klats sends nothing anywhere: it has no networking code.";
+"Открыть системные настройки" = "Open System Settings";
+"Ждём разрешения…" = "Waiting for permission…";
+"Попробуйте" = "Try it";
+"Выделите текст ниже, зажмите ⌥⌘ и отпустите." = "Select the text below, hold ⌥⌘ and let go.";
+"Должно получиться «привет мир», а раскладка переключится на русскую." = "You should get «привет мир», and the layout switches to Russian.";
+"Станет доступно, как только появится разрешение." = "Available as soon as the permission is granted.";
+"Последний штрих" = "One last thing";
+"Запускать Клац при входе в систему" = "Launch Klats at login";
+"Клац живёт в строке меню. Хоткеи меняются в настройках: ⌥⌘ для раскладки, ⌥⌘Z для регистра." = "Klats lives in the menu bar. Change the hotkeys in Settings: ⌥⌘ for layout, ⌥⌘Z for case.";
+"Готово" = "Done";
+
+/* Main menu (key equivalents only, never shown) */
+"Правка" = "Edit";
+"Отменить" = "Undo";
+"Повторить" = "Redo";
+"Вырезать" = "Cut";
+"Скопировать" = "Copy";
+"Вставить" = "Paste";
+"Удалить" = "Delete";
+"Выбрать всё" = "Select All";
+"Окно" = "Window";
+"Закрыть" = "Close";
+"Вернуть сочетание по умолчанию" = "Restore the default combination";
+"Нажмите на поле и введите новое сочетание. Сочетание из одних модификаторов срабатывает, когда вы отпускаете клавиши. Esc отменяет запись, ⌫ убирает сочетание совсем." = "Click a field and type a new combination. A modifier-only combination fires when you let the keys go. Esc cancels, ⌫ removes the combination entirely.";
+
+/* Settings footer */
+"Диктуй" = "Diktuy";
+": голос в текст" = ": voice to text";
+
+"Версия" = "Version";
