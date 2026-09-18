@@ -44,7 +44,7 @@ Details live in the [concept](docs/CONCEPT.md) and [design](docs/DESIGN.md) docu
 
 ## Limitations
 
-- ⌥⌘ fires when you release both keys without pressing anything else. So if you hold ⌥⌘, press nothing and let go, the selection gets converted. Plain ⌘Z undoes it.
+- Made a mistake or changed your mind: ⌘Z undoes the replacement like any paste.
 - Terminals, remote desktops and games are not supported. In password fields Klats does nothing.
 - Plain text is pasted; formatting comes from the surroundings.
 - Input methods (Japanese, Chinese, Korean) are not part of a pair.

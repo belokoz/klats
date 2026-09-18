@@ -10,7 +10,7 @@
 "Клацу нужно разрешение «Универсальный доступ»" = "Klats needs the Accessibility permission";
 "Выдать разрешение…" = "Grant permission…";
 "Клац приостановлен" = "Klats is paused";
-"Защищённый ввод включён: хоткеи временно недоступны" = "Secure input is on: hotkeys are unavailable for now";
+"Защищённый ввод включён: сочетания клавиш временно недоступны" = "Secure input is on: hotkeys are unavailable for now";
 
 /* Settings */
 "Настройки Клац" = "Klats Settings";
@@ -51,7 +51,7 @@
 "Станет доступно, как только появится разрешение." = "Available as soon as the permission is granted.";
 "Последний штрих" = "One last thing";
 "Запускать Клац при входе в систему" = "Launch Klats at login";
-"Клац живёт в строке меню. Хоткеи меняются в настройках: ⌥⌘ для раскладки, ⌥⌘Z для регистра." = "Klats lives in the menu bar. Change the hotkeys in Settings: ⌥⌘ for layout, ⌥⌘Z for case.";
+"Клац живёт в строке меню. Сочетания клавиш меняются в настройках: ⌥⌘ для раскладки, ⌥⌘Z для регистра." = "Klats lives in the menu bar. Change the hotkeys in Settings: ⌥⌘ for layout, ⌥⌘Z for case.";
 "Готово" = "Done";
 
 /* Main menu (key equivalents only, never shown) */

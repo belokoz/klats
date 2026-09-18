@@ -55,7 +55,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             addDisabledLabel(L("Клац приостановлен"))
             menu.addItem(.separator())
         } else if appState.secureInputIsOn {
-            addDisabledLabel(L("Защищённый ввод включён: хоткеи временно недоступны"))
+            addDisabledLabel(L("Защищённый ввод включён: сочетания клавиш временно недоступны"))
             menu.addItem(.separator())
         }
 

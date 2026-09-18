@@ -83,7 +83,7 @@ struct OnboardingView: View {
         StepCard(number: 3, title: L("Последний штрих"), dimmed: !appState.isTrusted) {
             Toggle(L("Запускать Клац при входе в систему"), isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { LoginItem.setEnabled($0) }
-            Text(L("Клац живёт в строке меню. Хоткеи меняются в настройках: ⌥⌘ для раскладки, ⌥⌘Z для регистра."))
+            Text(L("Клац живёт в строке меню. Сочетания клавиш меняются в настройках: ⌥⌘ для раскладки, ⌥⌘Z для регистра."))
                 .font(.callout).foregroundStyle(.secondary)
         }
     }
