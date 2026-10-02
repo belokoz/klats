@@ -9,14 +9,15 @@ import KlatsCore
 /// in some apps, so it is left for later as a fast path.
 @MainActor
 final class SelectionReplacer {
+    /// All in milliseconds.
     private enum Timing {
-        static let poll: Duration = .milliseconds(10)
+        static let poll = 10
         /// How long to wait for the user to let go of the hotkey before sending ⌘C anyway.
-        static let modifierRelease: Duration = .milliseconds(600)
+        static let modifierRelease = 600
         /// How long the front app gets to answer ⌘C. No change means nothing was selected.
-        static let copy: Duration = .milliseconds(500)
+        static let copy = 500
         /// How long the front app gets to read the clipboard after ⌘V before it is restored.
-        static let restore: Duration = .milliseconds(300)
+        static let restore = 300
     }
 
     /// Marks the converted text as not worth keeping, for clipboard managers that honour the
@@ -43,15 +44,13 @@ final class SelectionReplacer {
     }
 
     private func perform(_ action: HotkeyTap.ActionID, trigger: String) async {
-        let clock = ContinuousClock()
-        let started = clock.now
+        let stopwatch = Stopwatch()
         let frontApp = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
         var notes: [String] = []
         var outcome = "unknown"
         defer {
-            let total = started.duration(to: clock.now)
             let details = notes.isEmpty ? "" : " (" + notes.joined(separator: ", ") + ")"
-            Log.write("\(action.rawValue) via \(trigger) in \(frontApp): \(outcome)\(details) [\(total.milliseconds) ms]")
+            Log.write("\(action.rawValue) via \(trigger) in \(frontApp): \(outcome)\(details) [\(stopwatch.milliseconds) ms]")
         }
 
         guard Permissions.isTrusted else {
@@ -61,7 +60,7 @@ final class SelectionReplacer {
         }
 
         let releaseWait = await wait(upTo: Timing.modifierRelease) { !SyntheticKeys.modifiersAreDown }
-        notes.append("modifiers up after \(releaseWait.elapsed.milliseconds) ms\(releaseWait.satisfied ? "" : ", timed out")")
+        notes.append("modifiers up after \(releaseWait.elapsed) ms\(releaseWait.satisfied ? "" : ", timed out")")
 
         let pasteboard = NSPasteboard.general
         let snapshot = PasteboardSnapshot(pasteboard)
@@ -74,7 +73,7 @@ final class SelectionReplacer {
             outcome = "nothing selected, or the app ignored ⌘C"
             return
         }
-        notes.append("copy answered in \(copyWait.elapsed.milliseconds) ms")
+        notes.append("copy answered in \(copyWait.elapsed) ms")
 
         guard let text = pasteboard.string(forType: .string), !text.isEmpty else {
             snapshot.restore(to: pasteboard)
@@ -124,7 +123,7 @@ final class SelectionReplacer {
             notes.append(switched ? "input source switched" : "input source switch failed")
         }
 
-        try? await Task.sleep(for: Timing.restore)
+        await Task.sleep(milliseconds: Timing.restore)
         if pasteboard.changeCount == countAfterWrite {
             snapshot.restore(to: pasteboard)
         } else {
@@ -145,21 +144,13 @@ final class SelectionReplacer {
     }
 
     /// Polls `condition` on the main actor, yielding between checks so the event tap and the rest
-    /// of the app keep running.
-    private func wait(upTo limit: Duration, until condition: () -> Bool) async -> (satisfied: Bool, elapsed: Duration) {
-        let clock = ContinuousClock()
-        let started = clock.now
+    /// of the app keep running. Limit and elapsed time are in milliseconds.
+    private func wait(upTo limit: Int, until condition: () -> Bool) async -> (satisfied: Bool, elapsed: Int) {
+        let stopwatch = Stopwatch()
         while true {
-            if condition() { return (true, started.duration(to: clock.now)) }
-            if started.duration(to: clock.now) >= limit { return (false, started.duration(to: clock.now)) }
-            try? await Task.sleep(for: Timing.poll)
+            if condition() { return (true, stopwatch.milliseconds) }
+            if stopwatch.milliseconds >= limit { return (false, stopwatch.milliseconds) }
+            await Task.sleep(milliseconds: Timing.poll)
         }
-    }
-}
-
-private extension Duration {
-    var milliseconds: Int {
-        let (seconds, attoseconds) = components
-        return Int(seconds) * 1000 + Int(attoseconds / 1_000_000_000_000_000)
     }
 }

@@ -29,6 +29,7 @@
 "Все строчные" = "All lowercase";
 "Общие" = "General";
 "Запускать при входе в систему" = "Launch at login";
+"Проверять обновления при запуске" = "Check for updates at launch";
 "Универсальный доступ" = "Accessibility";
 "Разрешение выдано" = "Permission granted";
 "Не задано" = "Not set";
@@ -42,8 +43,11 @@
 "Исправляет раскладку выделенного текста одним нажатием." = "Fixes the layout of selected text with one press.";
 "Разрешите Клацу работать с текстом" = "Let Klats work with text";
 "Универсальный доступ включён. Отключить его можно в любой момент в системных настройках." = "Accessibility is on. You can turn it off any time in System Settings.";
-"Чтобы скопировать выделенный текст и вставить исправленный, нужно разрешение «Универсальный доступ». Клац ничего никуда не отправляет: сетевого кода в нём нет." = "To copy the selected text and paste it back fixed, Klats needs the Accessibility permission. Klats sends nothing anywhere: it has no networking code.";
+"Чтобы скопировать выделенный текст и вставить исправленный, нужно разрешение «Универсальный доступ». Ваш текст Клац никуда не отправляет." = "To copy the selected text and paste it back fixed, Klats needs the Accessibility permission. Klats never sends your text anywhere.";
 "Открыть системные настройки" = "Open System Settings";
+"Системные настройки → Конфиденциальность и безопасность → Универсальный доступ → Клац" = "System Settings → Privacy & Security → Accessibility → Клац";
+"Системные настройки → Защита и безопасность → Конфиденциальность → Универсальный доступ → Клац" = "System Preferences → Security & Privacy → Privacy → Accessibility → Клац";
+"Если галочка не ставится, сначала нажмите на замок внизу окна." = "If the checkbox will not turn on, click the lock at the bottom of the window first.";
 "Ждём разрешения…" = "Waiting for permission…";
 "Попробуйте" = "Try it";
 "Выделите текст ниже, зажмите ⌥⌘ и отпустите." = "Select the text below, hold ⌥⌘ and let go.";
@@ -73,3 +77,9 @@
 ": голос в текст" = ": voice to text";
 
 "Версия" = "Version";
+
+/* Update offer */
+"Вышел Клац %@" = "Klats %@ is out";
+"У вас версия %@. Скачайте новую, завершите Клац в его меню, откройте скачанный образ и перетащите Клац в «Программы» с заменой. При первом запуске macOS снова попросит подтвердить, как при установке. Настройки и Универсальный доступ сохранятся." = "You have version %@. Download the new one, quit Klats from its menu, open the downloaded disk image and drag Клац to Applications, replacing the old one. On first launch macOS asks you to confirm again, as during installation. Your settings and Accessibility access stay.";
+"Скачать" = "Download";
+"Не сейчас" = "Not Now";

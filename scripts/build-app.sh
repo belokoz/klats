@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 ARCHS="${ARCHS:-arm64 x86_64}"
 APP="build/Клац.app"
 BUNDLE_ID="io.github.belokoz.klats"
-MIN_MACOS="13.0"
+MIN_MACOS="12.0"
 
 binaries=()
 for arch in $ARCHS; do
@@ -31,6 +31,13 @@ echo "==> assembling $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 lipo -create "${binaries[@]}" -output "$APP/Contents/MacOS/Klats"
+# Swift 6 inlines calls to a runtime function that only macOS 15 and newer have, and the SDK does
+# not say so. The app carries its own copy (Sources/KlatsRuntimeShims); if the system copy is
+# ever imported again, the app would not even start on macOS 12–14.
+if xcrun dyld_info -imports "$APP/Contents/MacOS/Klats" | grep -q "isOSVersionAtLeastOrVariantVersion"; then
+    echo "error: the app imports _stdlib_isOSVersionAtLeastOrVariantVersionAtLeast from the system Swift runtime; it would not start on macOS 12-14" >&2
+    exit 1
+fi
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp -R Resources/en.lproj "$APP/Contents/Resources/"

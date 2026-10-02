@@ -1,6 +1,7 @@
 import Foundation
 
-/// The two places Klats can send the user. Nothing else in the app touches the network.
+/// The two places Klats can send the user. The only request the app makes itself is the
+/// once-per-launch version check in UpdateChecker.
 enum Links {
     static let repo = URL(string: "https://github.com/belokoz/klats")!
 

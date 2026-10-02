@@ -21,7 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainMenu.install()
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
         let layouts = InputSources.enabledLayouts().map(\.id).joined(separator: ", ")
-        Log.write("---- Klats \(version) started from \(Bundle.main.bundlePath) on macOS \(ProcessInfo.processInfo.operatingSystemVersionString); layouts: \(layouts); trusted: \(Permissions.isTrusted); secure input: \(Permissions.secureInputIsOn); login item: \(LoginItem.isEnabled)")
+        Log.write("---- Klats \(version) started from \(Bundle.main.bundlePath) on macOS \(ProcessInfo.processInfo.operatingSystemVersionString); layouts: \(layouts); trusted: \(Permissions.isTrusted); secure input: \(Permissions.secureInputIsOn); login item: \(LoginItem.isEnabled); update check: \(settings.checkForUpdates)")
         LoginItem.refreshLocation()
 
         statusItem.onConvertLayout = { [weak self] in self?.replacer.run(.layout, trigger: "menu") }
@@ -63,6 +63,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+
+        UpdateChecker.checkAtLaunch(settings: settings)
     }
 
     private func reconfigureHotkeys() {

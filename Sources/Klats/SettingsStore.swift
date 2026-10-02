@@ -15,6 +15,8 @@ final class SettingsStore: ObservableObject {
     /// Input source ids of the pair to convert between. Empty means «pick automatically».
     @Published var layoutPair: [String] { didSet { defaults.set(layoutPair, forKey: Key.layoutPair) } }
     @Published var onboardingCompleted: Bool { didSet { defaults.set(onboardingCompleted, forKey: Key.onboarding) } }
+    /// Ask GitHub for the latest version number once per launch.
+    @Published var checkForUpdates: Bool { didSet { defaults.set(checkForUpdates, forKey: Key.checkForUpdates) } }
 
     /// Runtime only: never remembered across launches.
     @Published var isPaused = false
@@ -30,6 +32,7 @@ final class SettingsStore: ObservableObject {
         static let caseMode = "caseMode"
         static let layoutPair = "layoutPair"
         static let onboarding = "onboardingCompleted"
+        static let checkForUpdates = "checkForUpdates"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -40,6 +43,7 @@ final class SettingsStore: ObservableObject {
         caseMode = defaults.string(forKey: Key.caseMode).flatMap(CaseConverter.Mode.init(rawValue:)) ?? .invert
         layoutPair = defaults.stringArray(forKey: Key.layoutPair) ?? []
         onboardingCompleted = defaults.bool(forKey: Key.onboarding)
+        checkForUpdates = defaults.object(forKey: Key.checkForUpdates) as? Bool ?? true
     }
 
     // A cleared shortcut is stored as an empty value, so it is not confused with «never set».

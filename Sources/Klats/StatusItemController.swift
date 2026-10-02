@@ -30,7 +30,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// Opens the menu as if the icon had been clicked. Only used for screenshots.
     func popUpMenu() {
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1))
+            await Task.sleep(milliseconds: 1000)
             item.button?.performClick(nil)
         }
     }
@@ -113,7 +113,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     private func afterMenuCloses(_ work: @escaping @MainActor () -> Void) {
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(150))
+            await Task.sleep(milliseconds: 150)
             work()
         }
     }

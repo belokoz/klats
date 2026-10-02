@@ -46,10 +46,16 @@ struct OnboardingView: View {
                 Text(L("Универсальный доступ включён. Отключить его можно в любой момент в системных настройках."))
                     .font(.callout).foregroundStyle(.secondary)
             } else {
-                Text(L("Чтобы скопировать выделенный текст и вставить исправленный, нужно разрешение «Универсальный доступ». Клац ничего никуда не отправляет: сетевого кода в нём нет."))
+                Text(L("Чтобы скопировать выделенный текст и вставить исправленный, нужно разрешение «Универсальный доступ». Ваш текст Клац никуда не отправляет."))
                     .font(.callout).foregroundStyle(.secondary)
-                Text("Системные настройки → Конфиденциальность и безопасность → Универсальный доступ → Клац")
+                Text(Compat.isMacOS12
+                     ? L("Системные настройки → Защита и безопасность → Конфиденциальность → Универсальный доступ → Клац")
+                     : L("Системные настройки → Конфиденциальность и безопасность → Универсальный доступ → Клац"))
                     .font(.system(size: 12, design: .monospaced)).foregroundStyle(.secondary)
+                if Compat.isMacOS12 {
+                    Text(L("Если галочка не ставится, сначала нажмите на замок внизу окна."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 HStack(spacing: 14) {
                     Button(L("Открыть системные настройки"), action: onGrant)
                     HStack(spacing: 7) {
@@ -81,8 +87,10 @@ struct OnboardingView: View {
 
     private var finishStep: some View {
         StepCard(number: 3, title: L("Последний штрих"), dimmed: !appState.isTrusted) {
-            Toggle(L("Запускать Клац при входе в систему"), isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { LoginItem.setEnabled($0) }
+            // The switch moves only when the change really happened.
+            Toggle(L("Запускать Клац при входе в систему"), isOn: Binding(
+                get: { launchAtLogin },
+                set: { wanted in if LoginItem.setEnabled(wanted) { launchAtLogin = wanted } }))
             Text(L("Клац живёт в строке меню. Сочетания клавиш меняются в настройках: ⌥⌘ для раскладки, ⌥⌘Z для регистра."))
                 .font(.callout).foregroundStyle(.secondary)
         }

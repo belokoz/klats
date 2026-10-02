@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Клац: исправить раскладку выделенного текста на Mac</title>
+<meta name="description" content="Выделил текст, отпустил ⌥⌘, раскладка сменилась. Бесплатная утилита для macOS: одна функция Punto Switcher, без автозамен и словарей, текст никуда не отправляет. Открытый код.">
+<meta name="theme-color" content="#F5F5F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1B1E24" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/favicon-64.png" sizes="64x64" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" sizes="180x180">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Клац: смена раскладки выделенного текста для macOS">
+<meta property="og:description" content="Выделил текст, отпустил ⌥⌘, раскладка сменилась. Бесплатно, открытый код, ваш текст никуда не уходит.">
+<meta property="og:locale" content="ru_RU">
+<!-- При выкладке подставить адрес сайта вместо ДОМЕН (делает скрипт деплоя) -->
+<link rel="canonical" href="https://ДОМЕН/">
+<meta property="og:url" content="https://ДОМЕН/">
+<meta property="og:image" content="https://ДОМЕН/assets/og-2.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Клац: ghbdtn превращается в привет">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #F5F5F7;
+  --panel: #FFFFFF;
+  --ink: #1B1E24;
+  --ink-2: #4F5563;
+  --ink-3: #868C97;
+  --line: #D5D8DE;
+  --red: #C43B25;
+  --tile: #2A2D34;
+  --tile-ink: #F3F4F6;
+  --kbd-face: #FFFFFF;
+  --kbd-shadow: #C3C7CF;
+  --sel: #BBD3FF;
+  --shot: #1B1E24;
+  --r-s: 6px; --r-m: 10px; --r-l: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #1B1E24; --panel: #2A2D34; --ink: #F3F4F6; --ink-2: #B3B8C3; --ink-3: #868C97;
+    --line: #3A3E47; --red: #F5806A; --tile: #F3F4F6; --tile-ink: #1B1E24;
+    --kbd-face: #33373F; --kbd-shadow: #111318; --sel: #2F4A7A; --shot: #111318;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1B1E24; --panel: #2A2D34; --ink: #F3F4F6; --ink-2: #B3B8C3; --ink-3: #868C97;
+  --line: #3A3E47; --red: #F5806A; --tile: #F3F4F6; --tile-ink: #1B1E24;
+  --kbd-face: #33373F; --kbd-shadow: #111318; --sel: #2F4A7A; --shot: #111318;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Segoe UI Symbol", "Noto Sans Symbols 2";
+  -webkit-font-smoothing: antialiased;
+}
+.page { --pad: 16px; padding-inline: var(--pad); padding-block: 0 48px; }
+@media (min-width: 600px) { .page { --pad: 24px; } }
+@media (min-width: 900px) { .page { --pad: 32px; } }
+.wrap, .wrap-wide { max-width: 880px; margin-inline: auto; }
+/* Один левый край у всех секций; текст внутри не длиннее 720px */
+.wrap > h2, .wrap > p, .wrap > ul, .wrap > ol, .wrap > details, .wrap > figure { max-width: 720px; }
+img { max-width: 100%; height: auto; display: block; }
+a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: var(--ink-3); }
+a:hover { text-decoration-color: currentColor; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+h1, h2 { text-wrap: balance; margin: 0; font-weight: 700; letter-spacing: -0.02em; line-height: 1.12; }
+h1 { font-size: clamp(30px, 4.6vw, 44px); }
+h2 { font-size: clamp(25px, 3.2vw, 32px); letter-spacing: -0.015em; }
+p { margin: 0; }
+p + p { margin-top: 1em; }
+.lead { font-size: 19px; line-height: 1.45; color: var(--ink-2); }
+.small { font-size: 15px; color: var(--ink-2); }
+b, strong { font-weight: 600; }
+section { padding-block: clamp(64px, 9vw, 104px); }
+section > .wrap-text { max-width: 720px; }
+h2 + .lead, h2 + p { margin-top: 14px; }
+.stack > * + * { margin-top: 22px; }
+kbd {
+  display: inline-block;
+  font: inherit; font-size: .88em; line-height: 1.35;
+  padding: 0 .45em;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--kbd-face);
+  box-shadow: 0 2px 0 var(--kbd-shadow);
+  vertical-align: 0.05em;
+  white-space: nowrap;
+}
+code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .92em; }
+
+/* Шапка */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; font-size: 18px; }
+.brand img { width: 28px; height: 28px; border-radius: 7px; }
+.top nav { display: flex; gap: 20px; font-size: 15px; }
+.top nav a { display: inline-block; padding-block: 8px; }
+
+/* Первый экран: демка */
+.hero { padding-block: clamp(28px, 5vw, 64px) clamp(64px, 9vw, 104px); }
+.demo {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  padding: 18px 20px 16px;
+  display: grid;
+  gap: 12px;
+  transition: border-color .15s;
+}
+.demo:focus-within { border-color: var(--ink); }
+.demo-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px; font-size: 13px; color: var(--ink-2); }
+.demo-top .pill { margin-left: auto; }
+.pill { display: inline-flex; gap: 6px; align-items: baseline; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+.pill b { color: var(--ink); font-weight: 600; transition: color .2s; }
+.pill.changed b { animation: cool .6s ease-out both; }
+.row-field { display: flex; align-items: center; gap: 16px; }
+.field { position: relative; display: grid; flex: 1 1 auto; min-width: 0; }
+.field > * { grid-area: 1 / 1; }
+.field textarea, .field .overlay {
+  font: inherit; font-size: clamp(27px, 5vw, 40px); font-weight: 500; line-height: 1.25; letter-spacing: -0.01em;
+  padding: 8px 6px; margin: 0; width: 100%; min-width: 0; min-height: 0;
+  white-space: pre-wrap; overflow-wrap: break-word; word-break: normal;
+}
+.field textarea {
+  display: block; background: transparent; border: 0; border-radius: 8px;
+  color: var(--ink); caret-color: var(--ink); resize: none; overflow: hidden; outline: none;
+}
+.field textarea::selection { background: var(--sel); }
+.overlay { pointer-events: none; visibility: hidden; color: var(--ink); }
+.demo.overlaid .overlay { visibility: visible; }
+.demo.overlaid textarea { color: transparent; caret-color: transparent; }
+.overlay .fake-sel { background: var(--sel); border-radius: 3px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.overlay .flash { animation: cool .55s ease-out both; }
+@keyframes cool { from { color: var(--red); } to { color: var(--ink); } }
+.cap-btn { display: inline-flex; gap: 8px; padding: 4px; margin: -4px; background: none; border: 0; cursor: pointer; flex: none; border-radius: var(--r-l); color: inherit; touch-action: none; -webkit-user-select: none; user-select: none; }
+.cap {
+  display: inline-grid; place-items: center;
+  width: 58px; height: 58px; border-radius: var(--r-m);
+  background: var(--kbd-face); border: 1px solid var(--line);
+  box-shadow: 0 3px 0 var(--kbd-shadow);
+  font-size: 27px; line-height: 1;
+  transition: transform .09s, box-shadow .09s;
+}
+.cap small { font-size: 11px; color: var(--ink-2); margin-top: 2px; }
+.cap.down, .cap-btn.down .cap { transform: translateY(3px); box-shadow: none; }
+.cap-btn.case .cap { width: auto; height: 40px; padding-inline: 12px; font-size: 18px; border-radius: var(--r-m); }
+.status { min-height: 1.5em; font-size: 15px; color: var(--ink-2); }
+.status.ok { color: var(--ink); }
+.demo-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.demo-foot .sp { flex: 1 1 auto; }
+.chip {
+  font: inherit; font-size: 14px; line-height: 1.3; color: var(--ink);
+  background: transparent; border: 1px solid var(--line); border-radius: 999px;
+  padding: 8px 14px; cursor: pointer; transition: background .12s, border-color .12s;
+}
+.chip:hover { background: var(--bg); border-color: var(--ink-3); }
+.chip .note { color: var(--ink-2); font-size: 12px; margin-left: 4px; }
+@media (max-width: 600px) {
+  .demo { padding: 14px 14px 12px; }
+  .row-field { flex-direction: column; align-items: stretch; gap: 10px; }
+  .cap-btn { justify-content: center; }
+  .cap { width: 52px; height: 52px; }
+}
+
+/* Слоган и кнопка */
+.intro { text-align: center; max-width: 760px; margin: 0 auto clamp(36px, 5vw, 56px); }
+.intro h1 { font-size: clamp(32px, 5vw, 50px); }
+.intro .lead { margin: 16px auto 0; max-width: 58ch; }
+.cta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 20px; margin-top: 28px; }
+.btn {
+  display: inline-block; text-decoration: none;
+  background: var(--tile); color: var(--tile-ink);
+  font-weight: 600; font-size: 17px; line-height: 1;
+  padding: 15px 22px; border-radius: var(--r-m);
+}
+.btn:hover { opacity: .92; }
+.trust { margin-top: 14px; font-size: 14px; color: var(--ink-2); }
+
+
+/* Одно нажатие */
+.story { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 32px 48px; margin-top: 32px; align-items: start; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: step; }
+.n { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--ink-3); display: grid; place-items: center; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; transition: background .2s, color .2s, border-color .2s; }
+.step { display: grid; grid-template-columns: 30px 1fr; gap: 14px; color: var(--ink-2); transition: color .2s; }
+.step b { display: block; color: inherit; }
+.step span.t { display: block; font-size: 15px; }
+.step.done .n { color: var(--ink-3); border-color: var(--line); }
+.step.now { color: var(--ink); }
+.step.now .n { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.step.now { color: var(--ink); }
+.step kbd { margin-right: .3em; color: var(--ink); }
+.step:not(.now):not(.done) kbd { color: inherit; }
+.stage { border: 1px solid var(--line); border-radius: var(--r-l); padding: 14px 16px; display: grid; gap: 10px; background: var(--panel); font-size: 15px; }
+.st-row { display: grid; grid-template-columns: 110px 1fr; align-items: baseline; gap: 10px; }
+.st-label { color: var(--ink-2); font-size: 13px; }
+.st-val { font-size: 18px; font-weight: 500; transition: color .2s; }
+.st-val.sel { background: var(--sel); border-radius: 3px; padding-inline: 2px; }
+.st-val.flash { animation: cool .6s ease-out both; }
+.st-snap { grid-column: 2; font-size: 13px; color: var(--ink-2); min-height: 1.3em; }
+.st-snap:empty { display: none; }
+.btn-text { font: inherit; font-size: 15px; color: var(--ink-2); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--ink-3); margin-top: 18px; }
+.btn-text:hover { color: var(--ink); }
+.story-after { margin-top: 28px; max-width: 720px; }
+@media (max-width: 700px) { .story { grid-template-columns: 1fr; } .st-row { grid-template-columns: 96px 1fr; } }
+
+/* Одна клавиша, две буквы */
+.kb-tool { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 28px; font-size: 15px; color: var(--ink-2); }
+.kb-tool input {
+  font: inherit; font-size: 18px; font-weight: 500; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-m);
+  padding: 8px 12px; width: 13ch; min-width: 0;
+}
+.kb-out { font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.kb { --g: clamp(3px, 0.8vw, 6px); --u: clamp(30px, calc((100vw - 2 * var(--pad) - 11 * var(--g)) / 12), 52px); display: grid; gap: var(--g); margin-top: 20px; -webkit-user-select: none; user-select: none; }
+.kb .row { display: flex; gap: var(--g); }
+.kb .row:nth-child(2) { padding-left: calc(var(--u) * 0.3); }
+.kb .row:nth-child(3) { padding-left: calc(var(--u) * 0.75); }
+.key {
+  position: relative; width: var(--u); height: var(--u); flex: none;
+  border: 1px solid var(--line); border-radius: calc(var(--u) * 0.18);
+  background: var(--kbd-face); box-shadow: 0 2px 0 var(--kbd-shadow);
+  padding: 0; cursor: default; font: inherit; color: inherit;
+  transition: transform .08s, box-shadow .08s, background .15s;
+}
+.key .lat, .key .cyr { position: absolute; font-size: max(11px, calc(var(--u) * 0.32)); line-height: 1; font-weight: 500; }
+.key .lat { top: 12%; left: 14%; color: var(--ink); }
+.key .cyr { bottom: 12%; right: 14%; color: var(--red); }
+.key.lit { background: var(--bg); border-color: var(--ink-3); }
+.key.lit .lat, .key.lit .cyr { font-weight: 700; }
+.key.lit::after { content: attr(data-n); position: absolute; top: -7px; right: -6px; min-width: 16px; height: 16px; padding-inline: 4px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 10px; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }
+.key.press, .key:active { transform: translateY(2px); box-shadow: none; }
+.key:hover { border-color: var(--ink-3); }
+.kb-hint { margin-top: 14px; font-size: 15px; color: var(--ink-2); min-height: 1.5em; }
+.kb-hint b { color: var(--ink); }
+.kb-hint .r { color: var(--red); font-weight: 600; }
+.kb-after { margin-top: 28px; max-width: 720px; }
+@media (max-width: 480px) {
+  .kb { margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); padding-top: 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .kb::-webkit-scrollbar { display: none; }
+  .key.lit::after { top: -6px; right: -5px; min-width: 14px; height: 14px; line-height: 14px; font-size: 9px; }
+}
+
+/* Ничего лишнего */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 48px; margin-top: 32px; align-items: start; }
+.no-label { font-size: 15px; color: var(--ink-2); margin-bottom: 10px; }
+ul.no { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+ul.no li { color: var(--ink-2); text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 1px; }
+.nums { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px 20px; }
+.num b { display: block; font-size: 34px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.num span { display: block; font-size: 14px; color: var(--ink-2); margin-top: 4px; }
+.outside { margin-top: 36px; max-width: 62ch; }
+.shot { margin: 32px 0 0; background: var(--shot); border-radius: var(--r-l); padding: 16px; display: grid; gap: 12px; justify-items: center; }
+.shot img { border-radius: var(--r-m); width: 100%; max-width: 480px; }
+.shot figcaption { font-size: 14px; color: #B3B8C3; text-align: center; }
+@media (max-width: 640px) { .two { grid-template-columns: 1fr; } }
+
+/* Установка */
+ol.how { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 26px; }
+ol.how li { display: grid; grid-template-columns: 32px 1fr; gap: 16px; }
+ol.how li { grid-template-columns: 30px 1fr; }
+ol.how .n { margin-top: 1px; }
+ol.how aside { margin-top: 12px; padding-left: 14px; border-left: 2px solid var(--line); font-size: 15px; color: var(--ink-2); }
+ol.how .shot { margin-top: 16px; padding: 12px; max-width: 420px; }
+ol.how li > div > p + p { margin-top: 10px; }
+ol.unblock { margin: 10px 0 0; padding-left: 22px; display: grid; gap: 8px; }
+ol.unblock li { display: list-item; }
+ol.unblock .cmd { margin-top: 8px; }
+ol.how .small { font-size: 15px; color: var(--ink-2); }
+ol.unblock + p { margin-top: 12px; }
+.req { margin-top: 28px; font-size: 15px; color: var(--ink-2); }
+details { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+details + details { margin-top: 0; }
+summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; gap: 10px; align-items: baseline; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--ink-3); border-bottom: 1.5px solid var(--ink-3); transform: rotate(-45deg) translateY(-1px); flex: none; transition: transform .15s; }
+details[open] summary::before { transform: rotate(45deg) translateY(-3px); }
+details > p, details > div { margin-top: 10px; color: var(--ink-2); padding-left: 17px; }
+details > p b { color: var(--ink); }
+.cmd { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.cmd pre { margin: 0; flex: 1 1 320px; min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-m); padding: 10px 12px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; color: var(--ink); }
+
+/* Что стоит знать */
+ul.know { list-style: none; margin: 24px 0 8px; padding: 0; display: grid; gap: 12px; }
+ul.know li { padding-left: 18px; position: relative; }
+ul.know li::before { content: "—"; position: absolute; left: 0; color: var(--ink-3); }
+ul.know li:first-child { color: var(--ink); }
+ul.know li:first-child b { font-weight: 600; }
+
+/* Подвал */
+footer { border-top: 1px solid var(--line); padding-top: 28px; margin-top: 16px; font-size: 15px; color: var(--ink-2); display: grid; gap: 12px; }
+footer nav { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+footer .fine { font-size: 13px; color: var(--ink-2); }
+
+@media print {
+  .demo, .btn-text, .copy, .kb-tool, .kb-hint { display: none; }
+  .shot { background: none; padding: 0; }
+  .shot figcaption { color: var(--ink-2); }
+  .btn { color: var(--ink); background: none; border: 1px solid var(--ink); }
+  .kb { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  .overlay .flash, .pill.changed b, .st-val.flash { color: var(--red); animation: none; }
+  .step { color: var(--ink); }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="top wrap-wide">
+  <a class="brand" href="#"><img src="assets/icon-256.png" width="28" height="28" alt="">Клац</a>
+  <nav>
+    <a href="https://github.com/belokoz/klats">GitHub</a>
+    <a href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Скачать</a>
+  </nav>
+</header>
+
+<main>
+<section class="hero wrap-wide" id="try">
+  <div class="intro">
+      <h1>Выделил текст, отпустил ⌥⌘, раскладка сменилась.</h1>
+      <p class="lead">Клац живёт в строке меню macOS и умеет одно: переводит выделенный текст в другую раскладку и переключает её в системе. Бонусом ⌥⌘Z меняет регистр. Без автозамен и словарей, ваш текст Клац никуда не отправляет.</p>
+      <div class="cta">
+        <a class="btn" href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Скачать для macOS</a>
+        <a href="https://github.com/belokoz/klats">Исходники на GitHub</a>
+      </div>
+      <p class="trust">Klats-0.2.0.dmg, 1,0 МБ · macOS 12+, Apple Silicon и Intel · бесплатно, MIT</p>
+  </div>
+
+  <div class="demo" id="demo">
+    <div class="demo-top">
+      <span id="demo-hint">Попробуйте прямо здесь</span>
+      <span class="pill" id="demo-layout">Раскладка системы: <b>ABC</b></span>
+    </div>
+    <div class="row-field">
+      <div class="field">
+        <textarea id="demo-field" rows="1" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Попробуйте Клац: текст, набранный не в той раскладке">ghbdtn vbh</textarea>
+        <div class="overlay" id="demo-overlay" aria-hidden="true"></div>
+      </div>
+      <button class="cap-btn" id="cap-btn" type="button" aria-label="Сменить раскладку выделенного: нажмите и отпустите">
+        <span class="cap" id="cap-alt">⌥</span><span class="cap" id="cap-cmd">⌘</span>
+      </button>
+    </div>
+    <p class="status" id="demo-status" aria-live="polite"></p>
+    <div class="demo-foot">
+      <button class="chip" type="button" data-text="Ghbdtn? rfr ltkf&amp;">Ghbdtn? rfr ltkf&amp;</button>
+      <button class="chip" type="button" data-text="руддщ цщкдв">руддщ цщкдв</button>
+      <button class="chip" type="button" data-text="пРИВЕТ, МИР" data-case>пРИВЕТ, МИР<span class="note">регистр</span></button>
+      <span class="sp"></span>
+      <button class="cap-btn case" id="case-btn" type="button" title="Сменить регистр выделенного" aria-label="Сменить регистр выделенного: нажмите и отпустите"><span class="cap">⌥⌘Z</span></button>
+    </div>
+  </div>
+</section>
+
+<section id="press" class="wrap-wide">
+  <div class="wrap-text">
+    <h2>Одно нажатие</h2>
+    <p class="lead">Клац не следит за тем, что вы печатаете. Он просыпается, когда вы отпускаете ⌥⌘, и делает то, что вы сделали бы руками, только за 0,4 секунды.</p>
+  </div>
+  <div class="story" id="story">
+    <ol class="steps" id="steps">
+      <li class="step"><span class="n">1</span><div><b><kbd>⌘C</kbd>Копирует выделенное.</b><span class="t">Перед этим запоминает, что лежало в буфере обмена.</span></div></li>
+      <li class="step"><span class="n">2</span><div><b>Перепечатывает.</b><span class="t">Каждую букву той же клавишей в другой раскладке.</span></div></li>
+      <li class="step"><span class="n">3</span><div><b><kbd>⌘V</kbd>Вставляет обратно.</b><span class="t">Обычная вставка: работает везде, где работает ⌘V.</span></div></li>
+      <li class="step"><span class="n">4</span><div><b>Переключает раскладку системы.</b><span class="t">На язык результата, чтобы дальше вы печатали уже правильно.</span></div></li>
+      <li class="step"><span class="n">5</span><div><b>Возвращает буфер обмена.</b><span class="t">Через 0,3 с. Что в нём лежало, там и лежит.</span></div></li>
+    </ol>
+    <div class="stage" aria-hidden="true">
+      <div class="st-row"><span class="st-label">Текст</span><span class="st-val sel" id="st-text">ghbdtn</span></div>
+      <div class="st-row"><span class="st-label">Буфер обмена</span><span class="st-val" id="st-clip">что-то важное</span><span class="st-snap" id="st-snap"></span></div>
+      <div class="st-row"><span class="st-label">Раскладка</span><span class="st-val" id="st-layout">ABC</span></div>
+    </div>
+  </div>
+  <button class="btn-text" id="story-again" type="button">Ещё раз</button>
+  <p class="story-after">Поэтому Клац работает везде, где работают ⌘C и ⌘V, и не работает там, где они не работают. Ваш текст Клац никуда не отправляет: в сеть он выходит только раз при запуске, чтобы узнать номер последней версии.</p>
+</section>
+
+<section id="keys" class="wrap-wide">
+  <div class="wrap-text">
+    <h2>Одна клавиша, две буквы</h2>
+    <p class="lead">На русской клавиатуре у каждой клавиши две легенды: латинская и кириллическая. «ghbdtn» и «привет» — одни и те же шесть клавиш. Клац ничего не переводит и не угадывает: он смотрит, какой клавишей набрана буква, и берёт с той же клавиши букву из другой раскладки.</p>
+  </div>
+  <div class="kb-tool">
+    <label for="kb-input">Напечатайте слово</label>
+    <input id="kb-input" value="привет" maxlength="24" spellcheck="false" autocomplete="off" autocapitalize="off">
+    <output class="kb-out" id="kb-out" for="kb-input"></output>
+  </div>
+  <div class="kb" id="kb" aria-hidden="true"></div>
+  <p class="kb-hint" id="kb-hint">Наведите на клавишу или нажмите её на своей клавиатуре.</p>
+  <p class="kb-after">Таблицу «буква ⇄ клавиша» Клац не хранит в коде: он строит её из раскладок, включённых в вашей системе, за 0,2 мс. Поэтому работает любая пара раскладок, не только русская с английской, и Shift учитывается сам. Так же выглядит и иконка Клаца: клавиша K с русской Л, читается «Кл».</p>
+</section>
+
+<section id="nothing" class="wrap">
+  <h2>Ничего лишнего. И ничего наружу.</h2>
+  <p class="lead">Punto Switcher купил Яндекс и перестал развивать, а сам он комбайн. Клац — одно действие без комбайна.</p>
+  <div class="two">
+    <div>
+      <p class="no-label">Чего нет</p>
+      <ul class="no">
+        <li>автопереключения по мере набора</li>
+        <li>автозамен и словарей</li>
+        <li>статистики и звуков</li>
+        <li>аккаунта и подписки</li>
+        <li>отправки вашего текста</li>
+      </ul>
+    </div>
+    <div class="nums">
+      <div class="num"><b>≈2 МБ</b><span>приложение целиком</span></div>
+      <div class="num"><b>≈10 МБ</b><span>памяти в покое</span></div>
+      <div class="num"><b>0 %</b><span>процессора в покое</span></div>
+      <div class="num"><b>0</b><span>зависимостей</span></div>
+    </div>
+  </div>
+  <p class="outside">Клац не отправляет ваш текст никуда. В сеть он выходит один раз при запуске: спрашивает у GitHub номер последней версии и, если вышла новая, предлагает её скачать. Это выключается в настройках. Журнал в ~/Library/Logs хранит только приложение, время, длины и исход, текста там нет никогда. Исходники открыты, проверьте сами.</p>
+  <figure class="shot">
+    <img src="assets/settings-2.png" width="480" height="726" loading="lazy" decoding="async" alt="Окно настроек Клаца: два сочетания клавиш, пара раскладок и переключатель «Переключать раскладку после конвертации», режим регистра, автозапуск, проверка обновлений и состояние разрешения">
+    <figcaption>Это все настройки. Целиком.</figcaption>
+  </figure>
+</section>
+
+<section id="install" class="wrap">
+  <h2>Ставится за минуту</h2>
+  <ol class="how">
+    <li><span class="n">1</span><div>
+      <p>Скачайте <a href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Klats-0.2.0.dmg</a>, откройте образ и перетащите Клац в «Программы».</p>
+    </div></li>
+    <li><span class="n">2</span><div>
+      <p>Откройте Клац. Сразу macOS его не запустит: она не может проверить разработчика. Запуск нужно один раз подтвердить, после установки и после каждого обновления.</p>
+      <p><b>macOS 15 и новее.</b> Дважды щёлкните по Клацу в «Программах» и в окне нажмите «Готово» (не «Переместить в Корзину»). Откройте «Системные настройки» (меню с яблоком в левом верхнем углу экрана) → «Конфиденциальность и безопасность», прокрутите вниз до раздела «Безопасность» и нажмите «Все равно открыть». Введите пароль от Mac и нажмите «Открыть».</p>
+      <p><b>macOS 12–14.</b> В «Программах» нажмите на Клац правой кнопкой мыши (или щёлкните, зажав Control) и выберите «Открыть». В окне ещё раз нажмите «Открыть».</p>
+      <p><b>Не получилось?</b> Нет кнопки «Открыть» или появилось окно «Не удается открыть программу «Клац».». Так бывает, особенно если DMG прислали через мессенджер. Снимите с Клаца отметку «скачано из интернета», это две минуты:</p>
+      <ol class="unblock">
+        <li>Откройте Терминал: Finder → «Программы» → папка «Утилиты» → «Терминал». Или нажмите ⌘ и Пробел, наберите «Терминал» и нажмите Return.</li>
+        <li>Скопируйте эту строку:
+          <div class="cmd">
+            <pre><code id="cmd-quarantine">xattr -dr com.apple.quarantine /Applications/Клац.app</code></pre>
+            <button type="button" class="chip copy" data-copy="cmd-quarantine">Скопировать</button>
+          </div>
+        </li>
+        <li>Щёлкните в окне Терминала, вставьте строку (⌘V) и нажмите Return. Если Терминал ничего не ответил, всё получилось.</li>
+        <li>Закройте Терминал и откройте Клац двойным щелчком.</li>
+      </ol>
+      <p class="small">Команда меняет только Клац. Если Терминал ответил «Permission denied», вставьте ту же строку с <code>sudo</code> и пробелом в начале и введите пароль от Mac: при вводе он не виден, это нормально.</p>
+      <aside>Почему так: у проекта нет платного аккаунта Apple. Код открыт, а подпись постоянная, поэтому обновления разрешение не сбрасывают.</aside>
+    </div></li>
+    <li><span class="n">3</span><div>
+      <p>Клац попросит «Универсальный доступ». Это единственное разрешение, и нужно оно для двух вещей: чтобы Клац видел, когда вы отпускаете ⌥⌘, и чтобы нажать за вас ⌘C и ⌘V. Включите Клац в списке, вернитесь в окно первого запуска и попробуйте на тестовом поле.</p>
+      <figure class="shot">
+        <img src="assets/onboarding.png" width="420" height="479" loading="lazy" decoding="async" alt="Окно первого запуска Клаца: разрешение выдано, поле для пробы с текстом ghbdtn vbh, галочка автозапуска">
+      </figure>
+    </div></li>
+  </ol>
+  <p class="req">Интерфейс на русском и английском, язык берётся из системы.</p>
+  <details>
+    <summary>Собрать самому</summary>
+    <p>Xcode не нужен, достаточно Command Line Tools. Тесты ядра тоже идут без Xcode.</p>
+    <p>Нужен Swift 6, то есть Command Line Tools 16 и новее, а они ставятся только на macOS 14.5 и новее. На macOS 12 и 13 берите готовый DMG, он универсальный.</p>
+    <div class="cmd">
+      <pre><code id="cmd">git clone https://github.com/belokoz/klats.git &amp;&amp; cd klats &amp;&amp; ./scripts/install.sh</code></pre>
+      <button type="button" class="chip copy" data-copy="cmd">Скопировать</button>
+    </div>
+  </details>
+</section>
+
+<section id="know" class="wrap">
+  <h2>Что стоит знать</h2>
+  <ul class="know">
+    <li>Ошиблись или передумали: ⌘Z отменяет замену, как обычную вставку.</li>
+    <li>Терминалы, удалённые рабочие столы и игры не поддерживаются: там ⌘C и ⌘V работают иначе. В полях паролей Клац ничего не делает.</li>
+    <li>Вставляется простой текст, форматирование берётся у окружения.</li>
+    <li>Японский, китайский и корейский ввод в пары не входят.</li>
+    <li>Отпустили ⌥⌘, ничего не выделив? В обычных приложениях услышите «бип». В VS Code и похожих редакторах рядом появится сконвертированная копия всей строки.</li>
+  </ul>
+  <details>
+    <summary>Это замена Punto Switcher?</summary>
+    <p>Для одной его функции: исправить уже набранное. Автопереключения по мере набора нет: оно угадывает и ошибается в паролях, логинах и коде. Клац делает ровно то, что вы попросили, и только когда попросили.</p>
+  </details>
+  <details>
+    <summary>⌥⌘ не сломает ⌥⌘Esc, ⌥⌘D и перетаскивание?</summary>
+    <p>Нет. Клац срабатывает, только если вы отпустили ⌥⌘, не нажав между делом ни клавиши, ни кнопки мыши, и держали меньше секунды. Всё остальное работает как раньше. Сочетание меняется в настройках, в том числе на другое из одних модификаторов.</p>
+  </details>
+  <details>
+    <summary>Бесплатно? Что потом?</summary>
+    <p>MIT, без подписки, без аккаунта, без «про»-версии. Удалить так же просто: «Завершить Клац» в меню и перетащить в корзину. На macOS 12 сначала выключите автозапуск в настройках, иначе в ~/Library/LaunchAgents останется файл io.github.belokoz.klats.login.plist.</p>
+  </details>
+</section>
+
+<section id="made" class="wrap">
+  <h2>Сделан за три дня</h2>
+  <p>Клац написан 16–18 сентября 2026 в диалоге с Claude Code. Автор ставил задачи, смотрел результат каждого этапа и правил; код и документы писал Claude. История с датами, развилками и цифрами — <a href="https://github.com/belokoz/klats/blob/main/docs/HISTORY.md">в репозитории</a>.</p>
+  <p>Дальше: версия 1.1 с историей буфера обмена по ⌃V.</p>
+</section>
+
+<section id="windows" class="wrap">
+  <h2>Версия для Windows</h2>
+  <p class="lead">В ближайшее время планируем сделать Клац для Windows: та же одна функция. Выделил текст, нажал сочетание, раскладка сменилась. Без комбайна и без словарей.</p>
+  <p>Как только сборка будет готова, она появится на <a href="https://github.com/belokoz/klats">GitHub</a> и на этой странице.</p>
+</section>
+</main>
+
+<footer class="wrap">
+  <nav>
+    <a href="https://github.com/belokoz/klats">GitHub</a>
+    <a href="https://github.com/belokoz/klats/releases">Релизы</a>
+    <a href="https://github.com/belokoz/klats/blob/main/LICENSE">MIT</a>
+    <a href="https://github.com/belokoz/klats/blob/main/docs/HISTORY.md">Как это делалось</a>
+    <a href="https://github.com/belokoz/klats/blob/main/README.en.md">English</a>
+  </nav>
+  <p>От автора: <a href="https://diktuy.ru/?utm_source=klats&amp;utm_medium=site&amp;utm_campaign=footer">Диктуй</a>, голос в текст.</p>
+  <p class="fine">Этот сайт ничего никуда не отправляет: без счётчиков, без чужих шрифтов, без кук.</p>
+</footer>
+
+</div>
+<script>
+// Таблицы сгенерированы из Tests/KlatsCoreTests/Fixtures.swift (настоящие раскладки ABC и «Русская – ПК»,
+// снятые с macOS через UCKeyTranslate). Не править руками. Ключ: код клавиши, суффикс s = с Shift.
+const LAYOUTS = {"abc":{"id":"com.apple.keylayout.ABC","keys":{"0":"a","0s":"A","1":"s","1s":"S","2":"d","2s":"D","3":"f","3s":"F","4":"h","4s":"H","5":"g","5s":"G","6":"z","6s":"Z","7":"x","7s":"X","8":"c","8s":"C","9":"v","9s":"V","10":"§","10s":"±","11":"b","11s":"B","12":"q","12s":"Q","13":"w","13s":"W","14":"e","14s":"E","15":"r","15s":"R","16":"y","16s":"Y","17":"t","17s":"T","18":"1","18s":"!","19":"2","19s":"@","20":"3","20s":"#","21":"4","21s":"$","22":"6","22s":"^","23":"5","23s":"%","24":"=","24s":"+","25":"9","25s":"(","26":"7","26s":"&","27":"-","27s":"_","28":"8","28s":"*","29":"0","29s":")","30":"]","30s":"}","31":"o","31s":"O","32":"u","32s":"U","33":"[","33s":"{","34":"i","34s":"I","35":"p","35s":"P","37":"l","37s":"L","38":"j","38s":"J","39":"'","39s":"\"","40":"k","40s":"K","41":";","41s":":","42":"\\","42s":"|","43":",","43s":"<","44":"/","44s":"?","45":"n","45s":"N","46":"m","46s":"M","47":".","47s":">","50":"`","50s":"~"}},"ru":{"id":"com.apple.keylayout.RussianWin","keys":{"0":"ф","0s":"Ф","1":"ы","1s":"Ы","2":"в","2s":"В","3":"а","3s":"А","4":"р","4s":"Р","5":"п","5s":"П","6":"я","6s":"Я","7":"ч","7s":"Ч","8":"с","8s":"С","9":"м","9s":"М","10":"ё","10s":"Ё","11":"и","11s":"И","12":"й","12s":"Й","13":"ц","13s":"Ц","14":"у","14s":"У","15":"к","15s":"К","16":"н","16s":"Н","17":"е","17s":"Е","18":"1","18s":"!","19":"2","19s":"\"","20":"3","20s":"№","21":"4","21s":";","22":"6","22s":":","23":"5","23s":"%","24":"=","24s":"+","25":"9","25s":"(","26":"7","26s":"?","27":"-","27s":"_","28":"8","28s":"*","29":"0","29s":")","30":"ъ","30s":"Ъ","31":"щ","31s":"Щ","32":"г","32s":"Г","33":"х","33s":"Х","34":"ш","34s":"Ш","35":"з","35s":"З","37":"д","37s":"Д","38":"о","38s":"О","39":"э","39s":"Э","40":"л","40s":"Л","41":"ж","41s":"Ж","42":"\\","42s":"/","43":"б","43s":"Б","44":".","44s":",","45":"т","45s":"Т","46":"ь","46s":"Ь","47":"ю","47s":"Ю","50":"]","50s":"["}}};
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+// ---- Ядро: порт KlatsCore (LayoutTable, LayoutConverter, CaseConverter) ----
+function makeTable(def) {
+  const forward = new Map();
+  const entries = [];
+  for (const [k, ch] of Object.entries(def.keys)) {
+    forward.set(k, ch);
+    entries.push({ code: parseInt(k, 10), shift: k.endsWith('s'), ch, k });
+  }
+  // Символ может жить на нескольких клавишах: предпочитаем без Shift, потом младший код.
+  entries.sort((a, b) => (a.shift !== b.shift ? (a.shift ? 1 : -1) : a.code - b.code));
+  const reverse = new Map();
+  for (const e of entries) if (!reverse.has(e.ch)) reverse.set(e.ch, e.k);
+  return { id: def.id, forward, reverse, has: ch => reverse.has(ch) };
+}
+const ABC = makeTable(LAYOUTS.abc);
+const RU = makeTable(LAYOUTS.ru);
+
+// Направление по тексту: голосуют символы, которые есть только в одной из раскладок.
+function detectDirection(text, tieBreak = 'aToB') {
+  let onlyA = 0, onlyB = 0;
+  for (const ch of text) {
+    const inA = ABC.has(ch), inB = RU.has(ch);
+    if (inA && !inB) onlyA++;
+    if (inB && !inA) onlyB++;
+  }
+  if (onlyA === onlyB) return tieBreak;
+  return onlyA > onlyB ? 'aToB' : 'bToA';
+}
+function convertLayout(text, tieBreak = 'aToB') {
+  text = text.normalize('NFC');
+  const direction = detectDirection(text, tieBreak);
+  const [source, target] = direction === 'aToB' ? [ABC, RU] : [RU, ABC];
+  let out = '';
+  for (const ch of text) {
+    const stroke = source.reverse.get(ch);
+    const mapped = stroke === undefined ? undefined : target.forward.get(stroke);
+    out += mapped === undefined ? ch : mapped;
+  }
+  return { text: out, direction };
+}
+function convertCase(text, mode) {
+  text = text.normalize('NFC');
+  if (mode === 'lowercase') return text.toLowerCase();
+  let out = '';
+  for (const ch of text) {
+    const lower = ch.toLowerCase(), upper = ch.toUpperCase();
+    if (ch === lower && ch !== upper) out += upper;
+    else if (ch === upper && ch !== lower) out += lower;
+    else out += ch;
+  }
+  return out;
+}
+
+// ---- Окружение ----
+const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+const macLike = /mac/i.test(platform);
+const touch = navigator.maxTouchPoints > 1;
+const chordEnabled = macLike && !touch;         // на Windows отпускание Win открывает «Пуск», там только кнопка
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---- Демка ----
+const demo = $('#demo'), field = $('#demo-field'), overlay = $('#demo-overlay');
+const status = $('#demo-status'), hint = $('#demo-hint'), layoutPill = $('#demo-layout');
+const capBtn = $('#cap-btn'), capAlt = $('#cap-alt'), capCmd = $('#cap-cmd'), caseBtn = $('#case-btn');
+const KEYS_HINT = chordEnabled ? 'зажмите ⌥⌘ и отпустите' : 'нажмите кнопку ⌥⌘';
+let currentLayout = 'abc';   // что показывает плашка «Раскладка системы»; в приложении так решается ничья
+let preselected = false;   // текст показан выделенным, хотя поле не в фокусе
+let interacted = false;
+let animToken = 0;
+let guardUntil = 0;
+
+function say(msg, ok) { status.textContent = msg; status.classList.toggle('ok', !!ok); }
+function autosize() { field.style.height = 'auto'; field.style.height = field.scrollHeight + 'px'; }
+function clearOverlay() { overlay.textContent = ''; demo.classList.remove('overlaid'); }
+function showFakeSelection() {
+  if (document.activeElement === field) { clearOverlay(); return; }
+  overlay.textContent = '';
+  const s = document.createElement('span');
+  s.className = 'fake-sel';
+  s.textContent = field.value;
+  overlay.appendChild(s);
+  demo.classList.add('overlaid');
+  preselected = true;
+}
+function setLayoutPill(which, changed) {
+  currentLayout = which;
+  layoutPill.innerHTML = 'Раскладка системы: <b>' + (which === 'ru' ? 'Русская – ПК' : 'ABC') + '</b>';
+  layoutPill.classList.toggle('changed', !!changed && which === 'ru');   // красный только у кириллицы
+}
+const tieBreak = () => (currentLayout === 'ru' ? 'bToA' : 'aToB');
+function selectionRange() {
+  if (preselected) return [0, field.value.length];
+  return [field.selectionStart, field.selectionEnd];
+}
+// Замена так, чтобы ⌘Z отменял её, как в приложении отменяет вставку.
+function replaceRange(start, end, text) {
+  const canEdit = document.activeElement === field || !touch;
+  if (canEdit) {
+    field.focus({ preventScroll: true });
+    field.setSelectionRange(start, end);
+    let ok = false;
+    try { ok = document.execCommand('insertText', false, text); } catch (e) { ok = false; }
+    if (!ok || field.value.slice(start, start + text.length) !== text) {
+      field.setRangeText(text, start, end, 'end');
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    field.setSelectionRange(start + text.length, start + text.length);
+  } else {
+    field.setRangeText(text, start, end, 'end');
+  }
+  autosize();
+}
+function animateRetype(start, oldText, newText, then) {
+  const oldChars = Array.from(oldText), newChars = Array.from(newText);
+  const done = () => { clearOverlay(); if (then) then(); };
+  if (reduceMotion || oldChars.length !== newChars.length || newChars.length > 48) { done(); return; }
+  const token = ++animToken;
+  const value = field.value;
+  overlay.textContent = '';
+  overlay.appendChild(document.createTextNode(value.slice(0, start)));
+  const spans = oldChars.map(ch => { const s = document.createElement('span'); s.textContent = ch; overlay.appendChild(s); return s; });
+  overlay.appendChild(document.createTextNode(value.slice(start + newText.length)));
+  demo.classList.add('overlaid');
+  let i = 0;
+  const tick = () => {
+    if (token !== animToken) return;
+    if (i < spans.length) {
+      spans[i].textContent = newChars[i];
+      spans[i].classList.add('flash');
+      i++;
+      setTimeout(tick, 32);
+    } else {
+      setTimeout(() => { if (token === animToken) done(); }, 620);
+    }
+  };
+  setTimeout(tick, 90);
+}
+function cancelAnimation() { animToken++; clearOverlay(); }
+
+function fireLayout(source) {
+  const auto = source === 'auto';
+  if (!auto) interacted = true;
+  const [start, end] = selectionRange();
+  if (start === end) { say('Ничего не выделено, и Клац ничего не трогает. Выделите текст и попробуйте ещё раз.'); return; }
+  const src = field.value.slice(start, end);
+  const { text, direction } = convertLayout(src, tieBreak());
+  if (text === src) { say('Результат не отличается от исходного: Клац оставил бы всё как есть, буфер обмена не тронут.'); return; }
+  cancelAnimation();
+  const wasPreselected = preselected;
+  preselected = false;
+  if (auto || (wasPreselected && touch)) {
+    field.value = field.value.slice(0, start) + text + field.value.slice(end);
+    autosize();
+  } else {
+    replaceRange(start, end, text);
+  }
+  if (source === 'chord') guardUntil = performance.now() + 1500;
+  const reselect = auto || touch;
+  animateRetype(start, src, text, reselect ? showFakeSelection : null);
+  setLayoutPill(direction === 'aToB' ? 'ru' : 'abc', true);
+  if (auto) say('Так работает Клац. Теперь сами: выделите текст, ' + KEYS_HINT + '.', true);
+  else say(direction === 'aToB' ? 'Готово. Клац переключил бы раскладку системы на русскую.' : 'Готово. Клац переключил бы раскладку системы на ABC.', true);
+}
+function fireCase(source) {
+  interacted = true;
+  const [start, end] = selectionRange();
+  if (start === end) { say('Ничего не выделено, и Клац ничего не трогает. Выделите текст и попробуйте ещё раз.'); return; }
+  const src = field.value.slice(start, end);
+  const text = convertCase(src, 'invert');
+  if (text === src) { say('Результат не отличается от исходного: буфер обмена не тронут.'); return; }
+  cancelAnimation();
+  const wasPreselected = preselected;
+  preselected = false;
+  if (wasPreselected && touch) { field.value = field.value.slice(0, start) + text + field.value.slice(end); autosize(); }
+  else replaceRange(start, end, text);
+  if (source === 'chord') guardUntil = performance.now() + 1500;
+  animateRetype(start, src, text, touch ? showFakeSelection : null);
+  say('Готово: регистр инвертирован. Режим «все строчные» включается в настройках.', true);
+}
+
+// Поле
+let selectOnClick = false;
+field.addEventListener('focus', () => {
+  interacted = true;
+  if (preselected) {
+    preselected = false;
+    clearOverlay();
+    field.select();
+    selectOnClick = true;
+    setTimeout(() => { selectOnClick = false; }, 400);
+  }
+});
+field.addEventListener('mouseup', () => {
+  if (!selectOnClick) return;
+  selectOnClick = false;
+  if (field.selectionStart === field.selectionEnd) field.select();   // простой клик, а не протягивание
+});
+field.addEventListener('input', () => {
+  interacted = true;
+  preselected = false;
+  cancelAnimation();
+  autosize();
+  setLayoutPill(detectDirection(field.value, tieBreak()) === 'aToB' ? 'abc' : 'ru', false);
+});
+field.addEventListener('paste', e => {
+  // Если у гостя уже стоит Клац, его ⌘V прилетит следом за нашей заменой: гасим, чтобы не перепечатать обратно.
+  if (performance.now() < guardUntil) {
+    e.preventDefault();
+    say('Похоже, у вас уже стоит Клац: он сработал сам, и страница пропустила его вставку.', true);
+  }
+});
+window.addEventListener('resize', autosize);
+
+// Настоящий аккорд ⌥⌘: порт ChordDetector из ядра один в один. Только на Mac и только когда фокус в поле.
+if (chordEnabled) {
+  const CHORD = 'alt+meta';
+  let state = 'idle';   // idle | armed | blocked
+  let since = 0;
+  let last = '';        // маска модификаторов на прошлом событии
+  const isMod = k => k === 'Alt' || k === 'Meta' || k === 'Shift' || k === 'Control';
+  const mask = e => [e.altKey && 'alt', e.metaKey && 'meta', e.shiftKey && 'shift', e.ctrlKey && 'ctrl'].filter(Boolean).join('+');
+  const subset = (a, b) => a.split('+').filter(Boolean).every(x => b.split('+').includes(x));
+  const reflect = e => { capAlt.classList.toggle('down', e.altKey); capCmd.classList.toggle('down', e.metaKey); };
+  const flagsChanged = e => {
+    const now = mask(e);
+    reflect(e);
+    let fired = false;
+    if (state === 'idle') {
+      if (now === CHORD && last !== CHORD && subset(last, CHORD)) { state = 'armed'; since = performance.now(); }
+      else if (!subset(now, CHORD)) state = 'blocked';
+    } else if (state === 'armed') {
+      if (now !== CHORD) {
+        if (subset(now, CHORD)) { fired = performance.now() - since <= 1000; state = now ? 'blocked' : 'idle'; }
+        else state = 'blocked';
+      }
+    } else if (!now) {
+      state = 'idle';
+    }
+    last = now;
+    if (fired) fireLayout('chord');
+  };
+  // Любая клавиша, клик или прокрутка при зажатом модификаторе: это настоящее сочетание, не аккорд.
+  const otherInput = e => { if (mask(e)) state = 'blocked'; };
+  const reset = () => { state = 'idle'; last = ''; capAlt.classList.remove('down'); capCmd.classList.remove('down'); };
+  field.addEventListener('keydown', e => {
+    interacted = true;
+    if (isMod(e.key)) { flagsChanged(e); return; }
+    if (e.altKey && e.metaKey && e.code === 'KeyZ') { e.preventDefault(); state = 'blocked'; fireCase('chord'); return; }
+    if (state === 'armed' && e.altKey && e.metaKey) say('⌥⌘ вместе с клавишей — обычное сочетание, Клац его пропускает.');
+    otherInput(e);
+  });
+  field.addEventListener('keyup', e => { if (isMod(e.key)) flagsChanged(e); });
+  window.addEventListener('pointerdown', otherInput, true);
+  window.addEventListener('wheel', otherInput, { passive: true, capture: true });
+  window.addEventListener('blur', reset);
+  field.addEventListener('blur', reset);
+}
+
+// Кнопка-клавиши: срабатывает при отпускании, как настоящий Клац.
+function pressable(btn, onRelease) {
+  let pressed = false, firedAt = 0;
+  const release = () => { firedAt = performance.now(); onRelease(); };
+  btn.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();                       // не забираем фокус и выделение у поля
+    pressed = true;
+    btn.classList.add('down');
+    try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  const up = e => {
+    if (!pressed) return;
+    pressed = false;
+    btn.classList.remove('down');
+    if (e.type === 'pointerup') release();
+  };
+  btn.addEventListener('pointerup', up);
+  btn.addEventListener('pointercancel', up);
+  btn.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && !pressed) { e.preventDefault(); pressed = true; btn.classList.add('down'); }
+  });
+  btn.addEventListener('keyup', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && pressed) { pressed = false; btn.classList.remove('down'); release(); }
+  });
+  btn.addEventListener('blur', () => { pressed = false; btn.classList.remove('down'); });
+  // Скринридеры и голосовое управление шлют только click: страховка на случай, если настоящего нажатия не было.
+  btn.addEventListener('click', () => { if (performance.now() - firedAt > 300) release(); });
+}
+pressable(capBtn, () => fireLayout('button'));
+pressable(caseBtn, () => fireCase('button'));
+
+// Пресеты: подставляют текст и выделяют его, а нажатие остаётся за вами.
+$$('.chip').forEach(chip => chip.addEventListener('click', () => {
+  interacted = true;
+  cancelAnimation();
+  field.value = chip.dataset.text;
+  autosize();
+  setLayoutPill(detectDirection(field.value) === 'aToB' ? 'abc' : 'ru', false);
+  const isCase = chip.hasAttribute('data-case');
+  if (touch) {
+    showFakeSelection();
+  } else {
+    preselected = false;
+    field.focus({ preventScroll: true });
+    field.select();
+  }
+  if (isCase) say('Текст выделен. Теперь ' + (chordEnabled ? 'нажмите ⌥⌘Z' : 'нажмите кнопку ⌥⌘Z') + ': регистр инвертируется.');
+  else say('Текст выделен. Теперь ' + KEYS_HINT + '.');
+}));
+
+// Стартовое состояние и один прогон
+autosize();
+showFakeSelection();
+setLayoutPill('abc', false);
+if (chordEnabled) say('Выделите текст, зажмите ⌥⌘ и отпустите. Или нажмите кнопку.');
+else if (macLike) say('Текст выделен: нажмите кнопку ⌥⌘.');
+else say('Клац только для macOS, но попробовать можно здесь: нажмите кнопку ⌥⌘.');
+if (!reduceMotion) {
+  setTimeout(() => {
+    if (interacted) return;
+    capAlt.classList.add('down'); capCmd.classList.add('down');
+    setTimeout(() => {
+      capAlt.classList.remove('down'); capCmd.classList.remove('down');
+      if (!interacted) fireLayout('auto');
+    }, 180);
+  }, 900);
+}
+
+// ---- Одно нажатие: раскадровка ----
+const steps = $$('#steps .step');
+const st = { text: $('#st-text'), clip: $('#st-clip'), snap: $('#st-snap'), layout: $('#st-layout') };
+const FRAMES = [
+  { text: 'ghbdtn', sel: true, clip: 'что-то важное', snap: '', layout: 'ABC' },
+  { text: 'ghbdtn', sel: true, clip: 'ghbdtn', snap: 'снимок: что-то важное', layout: 'ABC' },
+  { text: 'ghbdtn', sel: true, clip: 'привет', snap: 'снимок: что-то важное', layout: 'ABC', flash: 'clip' },
+  { text: 'привет', clip: 'привет', snap: 'снимок: что-то важное', layout: 'ABC', flash: 'text' },
+  { text: 'привет', clip: 'привет', snap: 'снимок: что-то важное', layout: 'Русская – ПК', flash: 'layout' },
+  { text: 'привет', clip: 'что-то важное', snap: '', layout: 'Русская – ПК' },
+];
+let storyTimer = null, storyPlayed = false, frame = 0;
+const againBtn = $('#story-again');
+function setVal(el, value, flash) {
+  if (el.textContent !== value) { el.textContent = value; }
+  el.classList.toggle('flash', !!flash);
+}
+function showFrame(n) {
+  frame = n;
+  const f = FRAMES[n];
+  steps.forEach((li, i) => { li.classList.toggle('now', i === n - 1); li.classList.toggle('done', i < n - 1); });
+  setVal(st.text, f.text, f.flash === 'text');
+  st.text.classList.toggle('sel', !!f.sel);
+  setVal(st.clip, f.clip, f.flash === 'clip');
+  st.snap.textContent = f.snap;
+  setVal(st.layout, f.layout, f.flash === 'layout');
+}
+function playStory() {
+  clearInterval(storyTimer);
+  let n = 0;
+  showFrame(0);
+  storyTimer = setInterval(() => { n++; showFrame(n); if (n >= 5) clearInterval(storyTimer); }, 850);
+}
+if (reduceMotion) {
+  // Без движения: показываем итог сразу, а кнопка листает кадры по одному.
+  showFrame(5);
+  againBtn.textContent = 'Показать по шагам';
+  againBtn.addEventListener('click', () => showFrame((frame % 5) + 1));
+} else {
+  showFrame(0);
+  againBtn.addEventListener('click', playStory);
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting) && !storyPlayed) { storyPlayed = true; playStory(); io.disconnect(); }
+    }, { threshold: 0.25 });
+    io.observe($('#story'));
+  } else { showFrame(5); }
+}
+
+// ---- Одна клавиша, две буквы ----
+const ROWS = [
+  [12, 13, 14, 15, 17, 16, 32, 34, 31, 35, 33, 30],
+  [0, 1, 2, 3, 5, 4, 38, 40, 37, 41, 39],
+  [6, 7, 8, 9, 11, 45, 46, 43, 47, 44],
+];
+const CODE2KEY = { KeyA: 0, KeyS: 1, KeyD: 2, KeyF: 3, KeyH: 4, KeyG: 5, KeyZ: 6, KeyX: 7, KeyC: 8, KeyV: 9, KeyB: 11, KeyQ: 12, KeyW: 13, KeyE: 14, KeyR: 15, KeyY: 16, KeyT: 17, BracketRight: 30, KeyO: 31, KeyU: 32, BracketLeft: 33, KeyI: 34, KeyP: 35, KeyL: 37, KeyJ: 38, Quote: 39, KeyK: 40, Semicolon: 41, Comma: 43, Slash: 44, KeyN: 45, KeyM: 46, Period: 47 };
+const kb = $('#kb'), kbInput = $('#kb-input'), kbOut = $('#kb-out'), kbHint = $('#kb-hint');
+const keyEl = new Map();
+const legend = (table, code) => { const ch = table.forward.get(String(code)) || ''; return /\p{L}/u.test(ch) ? ch.toUpperCase() : ch; };
+ROWS.forEach(codes => {
+  const row = document.createElement('div');
+  row.className = 'row';
+  codes.forEach(code => {
+    const key = document.createElement('button');
+    key.type = 'button';
+    key.className = 'key';
+    key.tabIndex = -1;
+    key.setAttribute('aria-hidden', 'true');
+    const lat = legend(ABC, code), cyr = legend(RU, code);
+    key.innerHTML = '<span class="lat"></span><span class="cyr"></span>';
+    key.firstChild.textContent = lat;
+    key.lastChild.textContent = cyr;
+    const tell = () => { kbHint.innerHTML = '<b></b> и <span class="r"></span>: одна клавиша, две буквы.'; kbHint.querySelector('b').textContent = lat; kbHint.querySelector('.r').textContent = cyr; };
+    key.addEventListener('pointerenter', tell);
+    key.addEventListener('pointerdown', e => { e.preventDefault(); tell(); });
+    row.appendChild(key);
+    keyEl.set(code, key);
+  });
+  kb.appendChild(row);
+});
+function lightWord() {
+  keyEl.forEach(el => { el.classList.remove('lit'); el.removeAttribute('data-n'); });
+  const value = kbInput.value.normalize('NFC');
+  // Клавишу ищем сначала в той раскладке, в которой набрано слово: знаки вроде «.» живут в обеих.
+  const [src, other] = detectDirection(value) === 'aToB' ? [ABC, RU] : [RU, ABC];
+  const keyCodeFor = ch => { const k = src.reverse.get(ch) || other.reverse.get(ch); return k === undefined ? undefined : parseInt(k, 10); };
+  let n = 0;
+  for (const ch of Array.from(value).slice(0, 14)) {
+    const code = keyCodeFor(ch);
+    const el = code === undefined ? undefined : keyEl.get(code);
+    if (el && !el.classList.contains('lit')) { n++; el.classList.add('lit'); el.dataset.n = n; }
+  }
+  const conv = convertLayout(value).text;
+  if (!value.trim()) kbOut.textContent = '';
+  else if (conv !== value) kbOut.textContent = value + ' = ' + conv;
+  else kbOut.textContent = value + ': эти клавиши в обеих раскладках дают одно и то же';
+}
+kbInput.addEventListener('input', lightWord);
+kbInput.addEventListener('keydown', e => {
+  const code = CODE2KEY[e.code];
+  const el = code === undefined ? undefined : keyEl.get(code);
+  if (!el) return;
+  el.classList.add('press');
+  setTimeout(() => el.classList.remove('press'), 160);
+});
+lightWord();
+
+// ---- Скопировать команду ----
+for (const copyBtn of document.querySelectorAll('[data-copy]')) {
+  const code = document.getElementById(copyBtn.dataset.copy);
+  copyBtn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(code.textContent); copyBtn.textContent = 'Скопировано'; }
+    catch (_) { const r = document.createRange(); r.selectNodeContents(code); const s = getSelection(); s.removeAllRanges(); s.addRange(r); copyBtn.textContent = 'Выделено, нажмите ⌘C'; }
+    setTimeout(() => { copyBtn.textContent = 'Скопировать'; }, 1600);
+  });
+}
+})();
+</script>
+</body>
+</html>
