@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Клац: исправить раскладку выделенного текста на Mac</title>
-<meta name="description" content="Выделил текст, отпустил ⌥⌘, раскладка сменилась. Бесплатная утилита для macOS: одна функция Punto Switcher, без автозамен и словарей, текст никуда не отправляет. Открытый код.">
+<title>Клац: исправить раскладку выделенного текста на Mac и Windows</title>
+<meta name="description" content="Выделил текст, отпустил ⌥⌘ на Mac или Win+Alt на Windows, раскладка сменилась. Бесплатная утилита для macOS и Windows: одна функция Punto Switcher, без автозамен и словарей, текст никуда не отправляет. Открытый код.">
 <meta name="theme-color" content="#F5F5F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1B1E24" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-64.png" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" sizes="180x180">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Клац: смена раскладки выделенного текста для macOS">
-<meta property="og:description" content="Выделил текст, отпустил ⌥⌘, раскладка сменилась. Бесплатно, открытый код, ваш текст никуда не уходит.">
+<meta property="og:title" content="Клац: смена раскладки выделенного текста для macOS и Windows">
+<meta property="og:description" content="Выделил текст, отпустил ⌥⌘ на Mac или Win+Alt на Windows, раскладка сменилась. Бесплатно, открытый код, ваш текст никуда не уходит.">
 <meta property="og:locale" content="ru_RU">
 <!-- При выкладке подставить адрес сайта вместо ДОМЕН (делает скрипт деплоя) -->
 <link rel="canonical" href="https://ДОМЕН/">
 <meta property="og:url" content="https://ДОМЕН/">
-<meta property="og:image" content="https://ДОМЕН/assets/og-2.png">
+<meta property="og:image" content="https://ДОМЕН/assets/og-3.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Клац: ghbdtn превращается в привет">
@@ -184,7 +184,14 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
   padding: 15px 22px; border-radius: var(--r-m);
 }
 .btn:hover { opacity: .92; }
+@media (max-width: 500px) { .intro .btn { min-width: 15em; } }   /* столбиком: обе кнопки одной ширины */
 .trust { margin-top: 14px; font-size: 14px; color: var(--ink-2); }
+.nw { white-space: nowrap; }
+
+/* Клац для Windows: кнопка по общему левому краю, снимок окна в свой размер (он 1x) */
+#windows .cta { justify-content: flex-start; }
+#windows .shot img { max-width: 520px; }
+#windows .win-note { margin-top: 28px; }
 
 
 /* Одно нажатие */
@@ -258,6 +265,7 @@ ul.no li { color: var(--ink-2); text-decoration: line-through; text-decoration-c
 .nums { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px 20px; }
 .num b { display: block; font-size: 34px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .num span { display: block; font-size: 14px; color: var(--ink-2); margin-top: 4px; }
+.nums-note { grid-column: 1 / -1; font-size: 14px; color: var(--ink-2); }
 .outside { margin-top: 36px; max-width: 62ch; }
 .shot { margin: 32px 0 0; background: var(--shot); border-radius: var(--r-l); padding: 16px; display: grid; gap: 12px; justify-items: center; }
 .shot img { border-radius: var(--r-m); width: 100%; max-width: 480px; }
@@ -322,7 +330,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
   <a class="brand" href="#"><img src="assets/icon-256.png" width="28" height="28" alt="">Клац</a>
   <nav>
     <a href="https://github.com/belokoz/klats">GitHub</a>
-    <a href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Скачать</a>
+    <a href="#install" data-download>Скачать</a>
   </nav>
 </header>
 
@@ -330,12 +338,12 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
 <section class="hero wrap-wide" id="try">
   <div class="intro">
       <h1>Выделил текст, отпустил ⌥⌘, раскладка сменилась.</h1>
-      <p class="lead">Клац живёт в строке меню macOS и умеет одно: переводит выделенный текст в другую раскладку и переключает её в системе. Бонусом ⌥⌘Z меняет регистр. Без автозамен и словарей, ваш текст Клац никуда не отправляет.</p>
+      <p class="lead">Клац живёт в строке меню macOS или рядом с часами в Windows и умеет одно: переводит выделенный текст в другую раскладку и переключает её в системе. Бонусом ⌥⌘Z меняет регистр. На Windows это Win+Alt и Win+Alt+Z. Без автозамен и словарей, ваш текст Клац никуда не отправляет.</p>
       <div class="cta">
         <a class="btn" href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Скачать для macOS</a>
-        <a href="https://github.com/belokoz/klats">Исходники на GitHub</a>
+        <a class="btn" href="https://github.com/belokoz/klats/releases/download/windows-v0.1.0/Klats-0.1.0-windows-x64.exe" data-exe>Скачать для Windows</a>
       </div>
-      <p class="trust">Klats-0.2.0.dmg, 1,0 МБ · macOS 12+, Apple Silicon и Intel · бесплатно, MIT</p>
+      <p class="trust">Бесплатно, MIT · macOS&nbsp;12+, Apple Silicon <span class="nw">и Intel · 1,0 МБ</span><br>Windows&nbsp;10 версии&nbsp;1903 и&nbsp;новее или Windows&nbsp;11, <span class="nw">64-бит · 2,1 МБ</span> · <a href="#windows">что покажет Windows при&nbsp;установке</a></p>
   </div>
 
   <div class="demo" id="demo">
@@ -398,7 +406,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
   </div>
   <div class="kb" id="kb" aria-hidden="true"></div>
   <p class="kb-hint" id="kb-hint">Наведите на клавишу или нажмите её на своей клавиатуре.</p>
-  <p class="kb-after">Таблицу «буква ⇄ клавиша» Клац не хранит в коде: он строит её из раскладок, включённых в вашей системе, за 0,2 мс. Поэтому работает любая пара раскладок, не только русская с английской, и Shift учитывается сам. Так же выглядит и иконка Клаца: клавиша K с русской Л, читается «Кл».</p>
+  <p class="kb-after">Таблицу «буква ⇄ клавиша» Клац не хранит в коде: он строит её из раскладок, включённых в вашей системе, за доли миллисекунды. Поэтому работает любая пара раскладок, не только русская с английской, и Shift учитывается сам. Так же выглядит и иконка Клаца: клавиша K с русской Л, читается «Кл».</p>
 </section>
 
 <section id="nothing" class="wrap">
@@ -420,9 +428,10 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
       <div class="num"><b>≈10 МБ</b><span>памяти в покое</span></div>
       <div class="num"><b>0 %</b><span>процессора в покое</span></div>
       <div class="num"><b>0</b><span>зависимостей</span></div>
+      <p class="nums-note">Замеры сделаны на Mac.</p>
     </div>
   </div>
-  <p class="outside">Клац не отправляет ваш текст никуда. В сеть он выходит один раз при запуске: спрашивает у GitHub номер последней версии и, если вышла новая, предлагает её скачать. Это выключается в настройках. Журнал в ~/Library/Logs хранит только приложение, время, длины и исход, текста там нет никогда. Исходники открыты, проверьте сами.</p>
+  <p class="outside">Клац не отправляет ваш текст никуда. В сеть он выходит один раз при запуске: спрашивает у GitHub номер последней версии и, если вышла новая, предлагает её скачать. Это выключается в настройках. Журнал работы хранит только приложение, время, длины и исход, текста там нет никогда. Исходники открыты, проверьте сами.</p>
   <figure class="shot">
     <img src="assets/settings-2.png" width="480" height="726" loading="lazy" decoding="async" alt="Окно настроек Клаца: два сочетания клавиш, пара раскладок и переключатель «Переключать раскладку после конвертации», режим регистра, автозапуск, проверка обновлений и состояние разрешения">
     <figcaption>Это все настройки. Целиком.</figcaption>
@@ -431,6 +440,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
 
 <section id="install" class="wrap">
   <h2>Ставится за минуту</h2>
+  <p class="small">Это шаги для Mac. Для Windows они в разделе <a href="#windows">«Клац для Windows»</a>.</p>
   <ol class="how">
     <li><span class="n">1</span><div>
       <p>Скачайте <a href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Klats-0.2.0.dmg</a>, откройте образ и перетащите Клац в «Программы».</p>
@@ -470,17 +480,46 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
       <pre><code id="cmd">git clone https://github.com/belokoz/klats.git &amp;&amp; cd klats &amp;&amp; ./scripts/install.sh</code></pre>
       <button type="button" class="chip copy" data-copy="cmd">Скопировать</button>
     </div>
+    <p>Это для Mac. Как собрать версию для Windows, написано <a href="https://github.com/belokoz/klats#собрать-самому">на GitHub</a>.</p>
   </details>
+</section>
+
+<section id="windows" class="wrap">
+  <h2>Клац для Windows</h2>
+  <p class="lead">Та же одна функция: выделил текст, отпустил Win+Alt, раскладка сменилась. Win+Alt+Z меняет регистр. Win и Alt стоят слева от пробела, как ⌥ и ⌘ на Mac.</p>
+  <div class="cta">
+    <a class="btn" href="https://github.com/belokoz/klats/releases/download/windows-v0.1.0/Klats-0.1.0-windows-x64.exe" data-exe>Скачать для Windows</a>
+  </div>
+  <p class="trust">Klats-0.1.0-windows-x64.exe, 2,1 МБ · Windows 10 версии 1903 и новее или Windows 11, 64-бит</p>
+  <ol class="how">
+    <li><span class="n">1</span><div>
+      <p>Браузер может предупредить, что такой файл скачивают редко: подтвердите сохранение и запустите файл. Если браузер совсем не даёт его сохранить, скачайте в другом браузере.</p>
+    </div></li>
+    <li><span class="n">2</span><div>
+      <p>Windows покажет окно «Система Windows защитила ваш компьютер». Нажмите «Подробнее», затем «Выполнить в любом случае».</p>
+      <aside>Почему так: у Клаца нет платной подписи, и Windows не знает издателя. Код открыт. То же окно будет при каждом обновлении.</aside>
+    </div></li>
+    <li><span class="n">3</span><div>
+      <p>Клац установится без прав администратора и сразу запустится. Разрешений ему не нужно: попробуйте Win+Alt на тестовом поле в окне первого запуска. Значок Клаца ищите рядом с часами, за стрелкой ^.</p>
+    </div></li>
+  </ol>
+  <p class="req">В Windows 11 с включённым «Интеллектуальным управлением приложениями» Клац не запустится: у него нет подписи. В S-режиме тоже: его нет в Microsoft Store.</p>
+  <figure class="shot">
+    <img src="assets/windows-settings.png" width="520" height="632" loading="lazy" decoding="async" alt="Окно «Параметры Клаца» в Windows: сочетания Win Alt и Win Alt Z, пара раскладок «США» и «Русская», галочка «Переключать раскладку после конвертации», режим регистра, «Запускать при входе в Windows» и «Проверять обновления при запуске»">
+    <figcaption>Параметры Клаца в Windows.</figcaption>
+  </figure>
+  <p class="win-note">Всё остальное на странице показано на примере Mac: клавиши, цифры, снимки экрана. На Windows буфер обмена возвращается через 0,3–2 с, смотря в какой программе. Файлы, скопированные из архива, и вложения Outlook в буфер не вернутся.</p>
 </section>
 
 <section id="know" class="wrap">
   <h2>Что стоит знать</h2>
   <ul class="know">
-    <li>Ошиблись или передумали: ⌘Z отменяет замену, как обычную вставку.</li>
-    <li>Терминалы, удалённые рабочие столы и игры не поддерживаются: там ⌘C и ⌘V работают иначе. В полях паролей Клац ничего не делает.</li>
+    <li>Ошиблись или передумали: ⌘Z на Mac и Ctrl+Z на Windows отменяют замену, как обычную вставку.</li>
+    <li>Терминалы, удалённые рабочие столы и игры не поддерживаются: там копирование и вставка работают иначе. В полях паролей Клац ничего не делает.</li>
+    <li>На Windows Клац не работает в окнах программ, запущенных от имени администратора: так Windows их защищает.</li>
     <li>Вставляется простой текст, форматирование берётся у окружения.</li>
     <li>Японский, китайский и корейский ввод в пары не входят.</li>
-    <li>Отпустили ⌥⌘, ничего не выделив? В обычных приложениях услышите «бип». В VS Code и похожих редакторах рядом появится сконвертированная копия всей строки.</li>
+    <li>Отпустили ⌥⌘, ничего не выделив? В обычных приложениях услышите «бип». В VS Code и похожих редакторах рядом появится сконвертированная копия всей строки. На Windows в обоих случаях Клац ничего не делает.</li>
   </ul>
   <details>
     <summary>Это замена Punto Switcher?</summary>
@@ -491,21 +530,19 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
     <p>Нет. Клац срабатывает, только если вы отпустили ⌥⌘, не нажав между делом ни клавиши, ни кнопки мыши, и держали меньше секунды. Всё остальное работает как раньше. Сочетание меняется в настройках, в том числе на другое из одних модификаторов.</p>
   </details>
   <details>
+    <summary>Win+Alt не откроет «Пуск»?</summary>
+    <p>Нет. Правило то же, что на Mac: Клац срабатывает, только если вы отпустили Win+Alt, не нажав между делом ни клавиши, ни кнопки мыши, и держали меньше секунды. «Пуск» при этом не открывается, а Win+Alt+R и перетаскивание с Alt работают как раньше. Сочетание меняется в параметрах Клаца.</p>
+  </details>
+  <details>
     <summary>Бесплатно? Что потом?</summary>
-    <p>MIT, без подписки, без аккаунта, без «про»-версии. Удалить так же просто: «Завершить Клац» в меню и перетащить в корзину. На macOS 12 сначала выключите автозапуск в настройках, иначе в ~/Library/LaunchAgents останется файл io.github.belokoz.klats.login.plist.</p>
+    <p>MIT, без подписки, без аккаунта, без «про»-версии. Удалить так же просто. На Mac: «Завершить Клац» в меню и перетащить в корзину; на macOS 12 сначала выключите автозапуск в настройках, иначе в ~/Library/LaunchAgents останется файл io.github.belokoz.klats.login.plist. На Windows: «Пуск» → «Параметры» → «Приложения» → Клац → «Удалить».</p>
   </details>
 </section>
 
 <section id="made" class="wrap">
   <h2>Сделан за три дня</h2>
   <p>Клац написан 16–18 сентября 2026 в диалоге с Claude Code. Автор ставил задачи, смотрел результат каждого этапа и правил; код и документы писал Claude. История с датами, развилками и цифрами — <a href="https://github.com/belokoz/klats/blob/main/docs/HISTORY.md">в репозитории</a>.</p>
-  <p>Дальше: версия 1.1 с историей буфера обмена по ⌃V.</p>
-</section>
-
-<section id="windows" class="wrap">
-  <h2>Версия для Windows</h2>
-  <p class="lead">В ближайшее время планируем сделать Клац для Windows: та же одна функция. Выделил текст, нажал сочетание, раскладка сменилась. Без комбайна и без словарей.</p>
-  <p>Как только сборка будет готова, она появится на <a href="https://github.com/belokoz/klats">GitHub</a> и на этой странице.</p>
+  <p>5 октября 2026 вышла версия для Windows: та же одна функция, сочетание Win+Alt. Дальше на Mac: версия 1.1 с историей буфера обмена по ⌃V.</p>
 </section>
 </main>
 
@@ -585,11 +622,17 @@ function convertCase(text, mode) {
 }
 
 // ---- Окружение ----
-const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+const forcedOS = (/[?&]os=(mac|win|other)\b/.exec(location.search) || [])[1];   // посмотреть глазами другого гостя: ?os=win
+const platform = forcedOS || (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
 const macLike = /mac/i.test(platform);
+const winLike = /^win/i.test(platform);
 const touch = navigator.maxTouchPoints > 1;
 const chordEnabled = macLike && !touch;         // на Windows отпускание Win открывает «Пуск», там только кнопка
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// «Скачать» в шапке: без скрипта ведёт к установке, на Mac и Windows сразу отдаёт файл для этой системы.
+const ownFile = chordEnabled ? $('.btn[data-dmg]') : winLike ? $('.btn[data-exe]') : null;
+if (ownFile) $('.top nav [data-download]').href = ownFile.href;
 
 // ---- Демка ----
 const demo = $('#demo'), field = $('#demo-field'), overlay = $('#demo-overlay');
@@ -822,7 +865,7 @@ pressable(capBtn, () => fireLayout('button'));
 pressable(caseBtn, () => fireCase('button'));
 
 // Пресеты: подставляют текст и выделяют его, а нажатие остаётся за вами.
-$$('.chip').forEach(chip => chip.addEventListener('click', () => {
+$$('.chip[data-text]').forEach(chip => chip.addEventListener('click', () => {
   interacted = true;
   cancelAnimation();
   field.value = chip.dataset.text;
@@ -845,10 +888,11 @@ autosize();
 showFakeSelection();
 setLayoutPill('abc', false);
 if (chordEnabled) say('Выделите текст, зажмите ⌥⌘ и отпустите. Или нажмите кнопку.');
-else if (macLike) say('Текст выделен: нажмите кнопку ⌥⌘.');
-else say('Клац только для macOS, но попробовать можно здесь: нажмите кнопку ⌥⌘.');
+else say('Текст выделен: нажмите кнопку ⌥⌘.');
+// Гостю не с Mac: на странице работает кнопка, а клавиши в Клаце для Windows свои. Подсказка не исчезает после автопрогона.
+if (!macLike) hint.textContent = 'Попробуйте прямо здесь, кнопкой ⌥⌘. В Клаце для Windows это клавиши Win+Alt.';
 if (!reduceMotion) {
-  setTimeout(() => {
+  const autoRun = () => setTimeout(() => {
     if (interacted) return;
     capAlt.classList.add('down'); capCmd.classList.add('down');
     setTimeout(() => {
@@ -856,6 +900,13 @@ if (!reduceMotion) {
       if (!interacted) fireLayout('auto');
     }, 180);
   }, 900);
+  // Прогон начинается, когда поле видно: на телефоне оно ниже первого экрана.
+  if ('IntersectionObserver' in window) {
+    const seen = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting)) { seen.disconnect(); autoRun(); }
+    }, { threshold: 0.6 });
+    seen.observe($('.row-field'));
+  } else autoRun();
 }
 
 // ---- Одно нажатие: раскадровка ----
