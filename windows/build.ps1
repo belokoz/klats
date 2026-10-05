@@ -3,14 +3,17 @@
 #   .\build.ps1            release build in build\release
 #   .\build.ps1 -Debug     debug build in build\debug
 #   .\build.ps1 -Fixtures  also regenerate tests\fixtures\layouts.h
+#   .\build.ps1 -Installer also build build\release\Klats-X.Y.Z-windows-x64.exe
 #
-# Needs Visual Studio Build Tools 2022 (MSVC, Windows SDK, CMake and Ninja are part of it).
-# Every build is clean: with only the Russian language pack of the Build Tools installed, Ninja
-# loses track of header and resource dependencies, and a full build takes seconds anyway.
+# Needs Visual Studio Build Tools 2022 (MSVC, Windows SDK, CMake and Ninja are part of it), and
+# Inno Setup 6 for the installer. Every build is clean: with only the Russian language pack of the
+# Build Tools installed, Ninja loses track of header and resource dependencies, and a full build
+# takes seconds anyway.
 # Keep this file ASCII: Windows PowerShell 5.1 reads scripts without a BOM in the ANSI code page.
 param(
     [switch]$Debug,
-    [switch]$Fixtures
+    [switch]$Fixtures,
+    [switch]$Installer
 )
 $ErrorActionPreference = 'Stop'
 $preset = if ($Debug) { 'debug' } else { 'release' }
@@ -33,8 +36,25 @@ if ($Fixtures) { $steps += "cmake --build --preset $preset --target fixtures" }
 $steps += "ctest --preset $preset"
 
 # vcvars looks for vswhere on PATH and complains when it is not there.
-$installer = Split-Path -Parent $vswhere
-$command = "set `"PATH=$installer;%PATH%`" && call `"$vcvars`" >nul && " + ($steps -join ' && ')
+$vsInstaller = Split-Path -Parent $vswhere
+$command = "set `"PATH=$vsInstaller;%PATH%`" && call `"$vcvars`" >nul && " + ($steps -join ' && ')
 cmd /c $command
 if ($LASTEXITCODE -ne 0) { throw "build failed with exit code $LASTEXITCODE" }
+
+if ($Installer) {
+    if ($Debug) { throw 'the installer is built from the release build only' }
+    $cmake = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'CMakeLists.txt') -Raw
+    if ($cmake -notmatch 'project\(Klats VERSION (\d+\.\d+\.\d+)') { throw 'no version in CMakeLists.txt' }
+    $version = $Matches[1]
+    $iscc = @(
+        (Get-Command iscc -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source),
+        (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'),
+        (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe')
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+    if (-not $iscc) { throw 'Inno Setup 6 not found: winget install JRSoftware.InnoSetup' }
+    & $iscc /Q "/DAppVersion=$version" "/DBuildDir=$buildDir" (Join-Path $PSScriptRoot 'installer\klats.iss')
+    if ($LASTEXITCODE -ne 0) { throw "installer build failed with exit code $LASTEXITCODE" }
+    Write-Host "==> installer: $(Join-Path $buildDir "Klats-$version-windows-x64.exe")"
+}
 Write-Host "==> done: $buildDir"

@@ -485,7 +485,11 @@ LRESULT App::handle(UINT message, WPARAM wParam, LPARAM lParam) {
     case WM_QUERYENDSESSION:
         return TRUE;
     case WM_ENDSESSION:
-        if (wParam) shutdown();
+        // Windows signs out, or an installer's Restart Manager asks Klats to make way.
+        if (wParam) {
+            shutdown();
+            PostQuitMessage(0);
+        }
         return 0;
     case WM_CLOSE:
         DestroyWindow(owner_);

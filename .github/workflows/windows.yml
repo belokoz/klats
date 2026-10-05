@@ -1,0 +1,68 @@
+# Klats for Windows, built on GitHub's machine (free of charge: the repository is public).
+#
+# Every push to the windows branch: build, core tests, installer as an artifact of the run.
+# Actions tab → "Klats for Windows" → Run workflow: the same, then the release windows-vX.Y.Z with
+# the installer, never marked latest. A suffix (beta1) makes a test pre-release instead. GitHub
+# offers the button only once this file is on the default branch; until then:
+#   gh workflow run windows.yml --ref windows -f suffix=beta1
+name: Klats for Windows
+
+on:
+  push:
+    branches: [windows]
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
+  workflow_dispatch:
+    inputs:
+      suffix:
+        description: 'Test build: a tag suffix such as beta1. Empty for a release.'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    # Visual Studio 2022 with MSVC 14.44, CMake, Ninja and Inno Setup 6: the toolchain of the
+    # author's PC. windows-latest has moved on to Visual Studio 2026.
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build, run the core tests, make the installer
+        shell: powershell
+        run: .\windows\build.ps1 -Installer
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Klats-windows-x64
+          path: windows/build/release/Klats-*-windows-x64.exe
+          if-no-files-found: error
+
+      - name: Publish the release
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SUFFIX: ${{ inputs.suffix }}
+        run: |
+          if ((Get-Content windows/CMakeLists.txt -Raw) -notmatch 'project\(Klats VERSION (\d+\.\d+\.\d+)') { throw 'no version in CMakeLists.txt' }
+          $version = $Matches[1]
+          $suffix = "$env:SUFFIX".Trim()
+          if ($suffix -and $suffix -notmatch '^[a-z0-9]+$') { throw "a suffix is lowercase letters and digits only: $suffix" }
+          $tag = if ($suffix) { "windows-v$version-$suffix" } else { "windows-v$version" }
+          $title = if ($suffix) { "Клац $version для Windows ($suffix)" } else { "Клац $version для Windows" }
+          $installer = "windows/build/release/Klats-$version-windows-x64.exe"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) { throw "$tag is out already: raise the version in windows/CMakeLists.txt" }
+          $notes = "Установщик для Windows 10 (1903 и новее) и Windows 11, 64-бит."
+          # The tag comes with the release, never alone: Windows Klats reads tags from the feed.
+          $options = @('--target', $env:GITHUB_SHA, '--title', $title, '--notes', $notes, '--latest=false')
+          if ($suffix) { $options += '--prerelease' }
+          gh release create $tag $installer @options
+          if ($LASTEXITCODE -ne 0) { throw 'gh release create failed' }
+          # The Mac app offers whatever GitHub calls the latest release: that must stay a Mac one.
+          $latest = gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" --jq .tag_name
+          if ($latest -like 'windows-*') { throw "GitHub calls $latest the latest release now: mark the Mac release as latest again" }
+          Write-Host "published $tag; the latest release is still $latest"
