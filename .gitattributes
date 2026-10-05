@@ -1,0 +1,13 @@
+# LF in the repository; the working tree follows the platform.
+* text=auto
+# Shell scripts stay LF even in a Windows checkout, or bash chokes on \r.
+*.sh text eol=lf
+# Windows scripts keep CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.ico binary
+*.icns binary
+*.dmg binary
+*.exe binary
