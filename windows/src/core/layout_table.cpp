@@ -24,6 +24,9 @@ std::optional<std::wstring_view> LayoutTable::character(KeyStroke stroke) const 
 }
 
 std::optional<KeyStroke> LayoutTable::stroke(std::wstring_view character) const {
+    // A key types at most a few UTF-16 units. A longer cluster can match nothing, and normalising
+    // a cluster of thousands of combining marks costs quadratic time: skip it.
+    if (character.size() > kLongestKey) return std::nullopt;
     auto found = reverse_.find(unicode::nfc(character));
     if (found == reverse_.end()) return std::nullopt;
     return found->second;

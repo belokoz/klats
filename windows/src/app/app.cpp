@@ -6,10 +6,14 @@
 #include "hotkey_display.h"
 #include "input_sources.h"
 #include "log.h"
+#include "login_item.h"
+#include "onboarding_window.h"
 #include "pipeline.h"
 #include "settings_store.h"
+#include "settings_window.h"
 #include "strings.h"
 #include "tray_icon.h"
+#include "update_checker.h"
 #include "version.h"
 
 #include <commctrl.h>
@@ -20,6 +24,7 @@
 #include <gdiplus.h>
 
 #include <cwchar>
+#include <memory>
 
 namespace klats::app {
 
@@ -36,12 +41,49 @@ constexpr int kTrayRetries = 30;  // at logon the taskbar may take a while to ap
 enum MenuId : UINT {
     kMenuLayout = 1,
     kMenuCase,
+    kMenuChoosePair,
     kMenuPause,
     kMenuSettings,
     kMenuAbout,
     kMenuLog,
     kMenuExit,
 };
+
+struct Options {
+    bool installHook = true;               // --no-hook: for a debugger, which would freeze all input
+    bool startedAtLogin = false;           // --autostart: started from the Run key
+    std::vector<std::wstring> debugShow;   // --debug-show settings,onboarding,about,menu,update
+    std::optional<AppVersion> pretendVersion;  // --debug-pretend-version 0.0.1
+};
+
+Options parseOptions(const std::wstring& commandLine) {
+    Options options;
+    int count = 0;
+    // The first argument is parsed as a program path: give it one, so the real ones parse normally.
+    std::wstring line = L"Klats.exe " + commandLine;
+    LPWSTR* arguments = CommandLineToArgvW(line.c_str(), &count);
+    if (!arguments) return options;
+    for (int i = 1; i < count; ++i) {
+        std::wstring argument = arguments[i];
+        if (argument == L"--no-hook") {
+            options.installHook = false;
+        } else if (argument == L"--autostart") {
+            options.startedAtLogin = true;
+        } else if (argument == L"--debug-show" && i + 1 < count) {
+            std::wstring list = arguments[++i];
+            for (size_t start = 0; start <= list.size();) {
+                size_t comma = list.find(L',', start);
+                if (comma == std::wstring::npos) comma = list.size();
+                if (comma > start) options.debugShow.push_back(list.substr(start, comma - start));
+                start = comma + 1;
+            }
+        } else if (argument == L"--debug-pretend-version" && i + 1 < count) {
+            options.pretendVersion = AppVersion::parse(arguments[++i]);
+        }
+    }
+    LocalFree(arguments);
+    return options;
+}
 
 std::wstring windowsVersion() {
     wchar_t display[64] = L"", build[32] = L"";
@@ -75,9 +117,30 @@ HRESULT CALLBACK aboutCallback(HWND, UINT notification, WPARAM, LPARAM lParam, L
     return S_OK;
 }
 
+// The tray window of a Klats that is already running. The mutex alone proves nothing: any program
+// in the session may create that name first, or hold it open after Klats exits. A Klats started a
+// moment earlier may not have its window yet, so the search waits a little.
+HWND runningKlats() {
+    std::wstring ownName = processName(GetCurrentProcessId());
+    for (int attempt = 0; attempt < 30; ++attempt) {
+        if (HWND window = FindWindowW(kOwnerClass, nullptr)) {
+            DWORD process = 0;
+            GetWindowThreadProcessId(window, &process);
+            return processName(process) == ownName ? window : nullptr;
+        }
+        Sleep(100);
+    }
+    return nullptr;
+}
+
 class App {
 public:
-    App(HINSTANCE instance, bool installHook) : instance_(instance), installHook_(installHook), pipeline_(settings_) {}
+    App(HINSTANCE instance, Options options)
+        : instance_(instance),
+          options_(std::move(options)),
+          pipeline_(settings_),
+          settingsWindow_(instance, settings_, hooks_, [this] { configureHotkeys(); }),
+          onboarding_(instance, settings_) {}
     int run();
 
 private:
@@ -87,19 +150,23 @@ private:
 
     void configureHotkeys();
     void showMenu(POINT anchor, bool extended);
+    POINT trayAnchor() const;
     void command(UINT id, HWND target);
     void setPaused(bool paused);
     void refreshIcon();
     void showAbout();
-    void showMessage(const wchar_t* title, const wchar_t* text);
+    void showDebugWindows();
+    AppVersion currentVersion() const;
     void shutdown();
 
     HINSTANCE instance_;
-    bool installHook_;
+    Options options_;
     SettingsStore settings_;
     Pipeline pipeline_;
     HookThread hooks_;
     TrayIcon tray_;
+    SettingsWindow settingsWindow_;
+    OnboardingWindow onboarding_;
     HWND owner_ = nullptr;
     UINT taskbarCreated_ = 0;
     UINT showSettings_ = 0;
@@ -114,11 +181,12 @@ private:
 App* g_app = nullptr;
 
 int App::run() {
-    log::open();
     std::wstring layouts;
     for (const auto& layout : enabledLayouts()) layouts += (layouts.empty() ? L"" : L", ") + layout.id;
-    log::write(L"---- Klats " KLATS_VERSION_WSTRING L" started from " + exePath() + L" on Windows " + windowsVersion() +
-               L"; layouts: " + layouts + L"; rights: " + (runningElevated() ? L"administrator" : L"standard"));
+    log::write(L"---- Klats " KLATS_VERSION_WSTRING L" started" + std::wstring(options_.startedAtLogin ? L" at login" : L"") +
+               L" from " + exePath() + L" on Windows " + windowsVersion() + L"; layouts: " + layouts + L"; rights: " +
+               (runningElevated() ? L"administrator" : L"standard"));
+    login_item::refreshLocation(options_.startedAtLogin);
 
     if (!pipeline_.start()) {
         log::write(L"pipeline thread could not start");
@@ -140,8 +208,8 @@ int App::run() {
     ChangeWindowMessageFilterEx(owner_, taskbarCreated_, MSGFLT_ALLOW, nullptr);
     ChangeWindowMessageFilterEx(owner_, showSettings_, MSGFLT_ALLOW, nullptr);
 
-    if (!hooks_.start(pipeline_.window(), owner_, installHook_)) log::write(L"hotkeys are off: the keyboard hook is not installed");
-    else if (installHook_) log::write(L"keyboard hook is up, hotkeys are live");
+    if (!hooks_.start(pipeline_.window(), owner_, options_.installHook)) log::write(L"hotkeys are off: the keyboard hook is not installed");
+    else if (options_.installHook) log::write(L"keyboard hook is up, hotkeys are live");
     configureHotkeys();
 
     refreshIcon();
@@ -151,14 +219,32 @@ int App::run() {
     WTSRegisterSessionNotification(owner_, NOTIFY_FOR_THIS_SESSION);
     displayNotification_ = RegisterPowerSettingNotification(owner_, &GUID_CONSOLE_DISPLAY_STATE, DEVICE_NOTIFY_WINDOW_HANDLE);
 
+    Settings settings = settings_.snapshot();
+    if (!settings.onboardingCompleted) onboarding_.show();
+    if (!options_.debugShow.empty()) {
+        showDebugWindows();
+    } else if (settings.checkForUpdates && settings.onboardingCompleted) {
+        updates::check(owner_, currentVersion());
+    }
+
     MSG message;
     while (GetMessageW(&message, nullptr, 0, 0) > 0) {
+        // Tab, arrows, Enter and Esc in the modeless windows.
+        if (settingsWindow_.window() && IsDialogMessageW(settingsWindow_.window(), &message)) continue;
+        if (onboarding_.window() && IsDialogMessageW(onboarding_.window(), &message)) continue;
         TranslateMessage(&message);
         DispatchMessageW(&message);
     }
     shutdown();
     return static_cast<int>(message.wParam);
 }
+
+AppVersion currentVersionOf(const std::optional<AppVersion>& pretended) {
+    if (pretended) return *pretended;
+    return AppVersion::parse(KLATS_VERSION_WSTRING).value_or(AppVersion());
+}
+
+AppVersion App::currentVersion() const { return currentVersionOf(options_.pretendVersion); }
 
 void App::configureHotkeys() {
     Settings settings = settings_.snapshot();
@@ -187,7 +273,7 @@ void App::showMenu(POINT anchor, bool extended) {
     HMENU menu = CreatePopupMenu();
 
     const wchar_t* header = nullptr;
-    if (installHook_ && !hooks_.hookInstalled()) {
+    if (options_.installHook && !hooks_.hookInstalled()) {
         header = tr(L"Клац не может следить за клавиатурой");
     } else if (!settings.paused && target) {
         DWORD process = 0;
@@ -199,6 +285,13 @@ void App::showMenu(POINT anchor, bool extended) {
         AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     }
     if (!settings.paused) {
+        // With three or more layouts and no pair chosen, the layout hotkey does nothing: say so and
+        // lead to the choice. Fewer than three loaded layouts cannot need it, and the full list
+        // takes Windows tens of milliseconds to read.
+        if (GetKeyboardLayoutList(0, nullptr) > 2 && readLayouts(settings.layoutPair).pair.problem == PairChoice::Problem::Ambiguous) {
+            AppendMenuW(menu, MF_STRING, kMenuChoosePair, tr(L"Выберите пару раскладок…"));
+            AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+        }
         auto item = [&](UINT id, const wchar_t* title, const std::optional<Hotkey>& hotkey) {
             std::wstring text = title;
             if (hotkey) text += L"\t" + displayString(*hotkey);
@@ -226,6 +319,21 @@ void App::showMenu(POINT anchor, bool extended) {
     PostMessageW(owner_, WM_NULL, 0, 0);
     DestroyMenu(menu);
     if (chosen) command(chosen, target);
+    // A menu closed with Esc, or one that opened no window, would leave the keyboard on Klats's
+    // invisible window. Not after the actions: they give the focus back to the user's window.
+    if ((chosen == 0 || chosen == kMenuPause) && GetForegroundWindow() == owner_) tray_.focus();
+}
+
+// Where the menu opens without a click: at the icon, or at the mouse when the icon is hidden.
+POINT App::trayAnchor() const {
+    NOTIFYICONIDENTIFIER icon{sizeof icon};
+    icon.hWnd = owner_;
+    icon.uID = 1;
+    RECT bounds;
+    if (SUCCEEDED(Shell_NotifyIconGetRect(&icon, &bounds))) return {(bounds.left + bounds.right) / 2, bounds.top};
+    POINT cursor{};
+    GetCursorPos(&cursor);
+    return cursor;
 }
 
 void App::command(UINT id, HWND target) {
@@ -239,8 +347,9 @@ void App::command(UINT id, HWND target) {
     case kMenuPause:
         setPaused(!settings_.snapshot().paused);
         break;
+    case kMenuChoosePair:
     case kMenuSettings:
-        showMessage(tr(L"Клац"), tr(L"Окно параметров появится в следующей сборке."));
+        settingsWindow_.show();
         break;
     case kMenuAbout:
         showAbout();
@@ -260,7 +369,7 @@ void App::showAbout() {
     std::wstring content = std::wstring(tr(L"Версия")) + L" " KLATS_VERSION_WSTRING L"\n" +
                            tr(L"Исправляет раскладку выделенного текста одним нажатием.") + L"\n\n<a href=\"" + kRepository +
                            L"\">github.com/belokoz/klats</a>\n<a href=\"https://diktuy.ru/?utm_source=klats&utm_medium=app&utm_campaign=about\">" +
-                           (interfaceIsRussian() ? L"Диктуй: голос в текст" : L"Diktuy: voice to text") + L"</a>\n\nMIT License";
+                           tr(L"Диктуй: голос в текст") + L"</a>\n\nMIT License";
     TASKDIALOGCONFIG config{};
     config.cbSize = sizeof config;
     config.hInstance = instance_;
@@ -275,17 +384,34 @@ void App::showAbout() {
     TaskDialogIndirect(&config, nullptr, nullptr, nullptr);
 }
 
-void App::showMessage(const wchar_t* title, const wchar_t* text) {
-    SetForegroundWindow(owner_);
-    TaskDialog(nullptr, instance_, title, title, text, TDCBF_OK_BUTTON, MAKEINTRESOURCEW(1), nullptr);
+// `--debug-show settings,onboarding,about,menu,update` opens windows straight away, for screenshots.
+void App::showDebugWindows() {
+    for (const std::wstring& name : options_.debugShow) {
+        if (name == L"settings") {
+            settingsWindow_.show();
+        } else if (name == L"onboarding") {
+            onboarding_.show();
+        } else if (name == L"about") {
+            showAbout();
+        } else if (name == L"menu") {
+            showMenu(trayAnchor(), false);
+        } else if (name == L"update") {
+            std::wstring next = std::to_wstring(KLATS_VERSION_MAJOR) + L"." + std::to_wstring(KLATS_VERSION_MINOR) + L"." +
+                                std::to_wstring(KLATS_VERSION_PATCH + 1);
+            WindowsRelease release{AppVersion::parse(next).value_or(AppVersion()), std::wstring(kRepository) + L"/releases"};
+            updates::offer(owner_, instance_, release, currentVersion());
+        }
+    }
 }
 
 void App::shutdown() {
     if (shutDown_) return;
     shutDown_ = true;
     // The pipeline first: a conversion in flight puts the user's clipboard back before anything else.
-    hooks_.stop();
     pipeline_.stop();
+    hooks_.stop();
+    if (settingsWindow_.window()) DestroyWindow(settingsWindow_.window());
+    if (onboarding_.window()) DestroyWindow(onboarding_.window());
     tray_.remove();
     if (foregroundHook_) UnhookWinEvent(foregroundHook_);
     if (displayNotification_) UnregisterPowerSettingNotification(displayNotification_);
@@ -312,7 +438,8 @@ LRESULT App::handle(UINT message, WPARAM wParam, LPARAM lParam) {
         return 0;
     }
     if (message == showSettings_ && showSettings_) {
-        showMessage(tr(L"Клац уже работает"), tr(L"Его значок — в области уведомлений, рядом с часами. Если его не видно, нажмите стрелку ^."));
+        // Klats was started a second time: the user is looking for it.
+        settingsWindow_.show();
         return 0;
     }
     switch (message) {
@@ -329,9 +456,24 @@ LRESULT App::handle(UINT message, WPARAM wParam, LPARAM lParam) {
             break;
         }
         return 0;
-    case WM_KLATS_HOOK_FAILED:
-        refreshIcon();
+    case WM_KLATS_HOOK_STATUS:
+        switch (static_cast<HookStatus>(wParam)) {
+        case HookStatus::Failed:
+            log::write(L"keyboard hook could not be installed, error " + std::to_wstring(lParam));
+            break;
+        case HookStatus::Reinstalled:
+            log::write(L"keyboard hook reinstalled");
+            break;
+        case HookStatus::ReinstalledAfterRemoval:
+            log::write(L"Windows had removed the keyboard hook; reinstalled");
+            break;
+        }
         return 0;
+    case WM_KLATS_UPDATE: {
+        std::unique_ptr<WindowsRelease> release(reinterpret_cast<WindowsRelease*>(lParam));
+        if (release) updates::offer(owner_, instance_, *release, currentVersion());
+        return 0;
+    }
     case WM_TIMER:
         if (wParam == kTrayRetryTimer) {
             refreshIcon();
@@ -339,9 +481,14 @@ LRESULT App::handle(UINT message, WPARAM wParam, LPARAM lParam) {
         }
         return 0;
     case WM_SETTINGCHANGE:
-        if (lParam && std::wcscmp(reinterpret_cast<const wchar_t*>(lParam), L"ImmersiveColorSet") == 0) refreshIcon();
+        if (wParam == SPI_SETHIGHCONTRAST ||
+            (lParam && std::wcscmp(reinterpret_cast<const wchar_t*>(lParam), L"ImmersiveColorSet") == 0)) {
+            refreshIcon();
+        }
         return 0;
+    case WM_SYSCOLORCHANGE:  // a contrast theme turned on, off, or changed its colours
     case WM_DISPLAYCHANGE:
+    case WM_DPICHANGED:
         refreshIcon();
         return 0;
     case WM_WTSSESSION_CHANGE:
@@ -381,17 +528,20 @@ LRESULT App::handle(UINT message, WPARAM wParam, LPARAM lParam) {
 }  // namespace
 
 int run(HINSTANCE instance, const std::wstring& commandLine) {
+    log::open();
+    Options options = parseOptions(commandLine);
     HANDLE mutex = CreateMutexW(nullptr, FALSE, kMutexName);
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        // Klats is already running: let it show itself, then step aside.
-        if (HWND other = FindWindowW(kOwnerClass, nullptr)) {
+        if (HWND other = runningKlats()) {
+            // Klats is already running: let it show itself, then step aside.
             DWORD process = 0;
             GetWindowThreadProcessId(other, &process);
             AllowSetForegroundWindow(process);
             PostMessageW(other, RegisterWindowMessageW(kShowSettingsMessage), 0, 0);
+            if (mutex) CloseHandle(mutex);
+            return 0;
         }
-        if (mutex) CloseHandle(mutex);
-        return 0;
+        log::write(L"another program holds the name Klats uses to run once; starting anyway");
     }
 
     INITCOMMONCONTROLSEX controls{sizeof controls, ICC_STANDARD_CLASSES | ICC_LINK_CLASS};
@@ -400,10 +550,9 @@ int run(HINSTANCE instance, const std::wstring& commandLine) {
     ULONG_PTR gdiplus = 0;
     Gdiplus::GdiplusStartup(&gdiplus, &gdiplusInput, nullptr);
 
-    bool installHook = commandLine.find(L"--no-hook") == std::wstring::npos;
     int result = 0;
     {
-        App app(instance, installHook);
+        App app(instance, std::move(options));
         g_app = &app;
         result = app.run();
         g_app = nullptr;

@@ -1,7 +1,7 @@
 #include "pipeline.h"
 
-#include "clipboard.h"
 #include "foreground.h"
+#include "hook_thread.h"
 #include "input_sources.h"
 #include "log.h"
 #include "synthetic_keys.h"
@@ -22,8 +22,13 @@ namespace {
 // All in milliseconds.
 constexpr ULONGLONG kModifierReleaseMs = 600;  // how long the user gets to let go of the hotkey
 constexpr ULONGLONG kCopyMs = 500;             // how long the program gets to answer the copy keys
+constexpr ULONGLONG kLateCopyMs = 5000;        // how late an answer to the copy keys is still undone
 constexpr DWORD kMenuCloseMs = 150;            // how long the tray menu needs to give the focus back
 constexpr ULONGLONG kLayoutCheckMs = 150;      // how long a window gets to switch its layout
+constexpr DWORD kFinalRestoreWaitMs = 2000;    // how long the clipboard may stay busy before the last restore
+constexpr DWORD kPasteLandingMs = 100;         // what a quitting Klats still gives the paste
+
+constexpr UINT_PTR kLateCopyTimer = 1;
 
 const wchar_t* kWindowClass = L"KlatsPipeline";
 
@@ -44,6 +49,16 @@ bool isCodeEditor(const std::wstring& exe) {
            exe == L"windsurf.exe";
 }
 
+// Sublime Text copies the whole line, line break included, when nothing is selected, and leaves no
+// mark to tell. The same text from a real selection is rare: one whole line taken with its break.
+bool looksLikeLineCopy(const std::wstring& exe, const std::wstring& text) {
+    return exe == L"sublime_text.exe" && !text.empty() && text.back() == L'\n' && std::count(text.begin(), text.end(), L'\n') == 1;
+}
+
+size_t lineBreaks(const std::wstring& text) {
+    return static_cast<size_t>(std::count_if(text.begin(), text.end(), [](wchar_t c) { return c == L'\r' || c == L'\n'; }));
+}
+
 bool sameLayout(HKL a, HKL b) {
     return static_cast<DWORD>(reinterpret_cast<ULONG_PTR>(a)) == static_cast<DWORD>(reinterpret_cast<ULONG_PTR>(b));
 }
@@ -54,12 +69,6 @@ bool waitForLayout(DWORD thread, HKL target, HANDLE cancel) {
         if (nowMs() - start >= kLayoutCheckMs || !pumpingWait(10, cancel)) return false;
     }
     return true;
-}
-
-LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
-    // Klats never delays rendering, so WM_RENDERFORMAT and WM_RENDERALLFORMATS have nothing to
-    // render: the default handling is exactly right.
-    return DefWindowProcW(window, message, wParam, lParam);
 }
 
 // One log line per run, written whatever way the run ends. Never the text itself.
@@ -111,6 +120,17 @@ void Pipeline::request(Action action, bool fromMenu) {
     if (window_) PostMessageW(window_, WM_KLATS_ACTION, static_cast<WPARAM>(action), fromMenu ? 1 : 0);
 }
 
+LRESULT CALLBACK Pipeline::windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    auto* self = reinterpret_cast<Pipeline*>(GetWindowLongPtrW(window, GWLP_USERDATA));
+    if (self && (message == WM_CLIPBOARDUPDATE || (message == WM_TIMER && wParam == kLateCopyTimer))) {
+        self->settleLateCopy();
+        return 0;
+    }
+    // Klats never delays rendering, so WM_RENDERFORMAT and WM_RENDERALLFORMATS have nothing to
+    // render: the default handling is exactly right.
+    return DefWindowProcW(window, message, wParam, lParam);
+}
+
 DWORD WINAPI Pipeline::threadMain(void* parameter) {
     auto* self = static_cast<Pipeline*>(parameter);
     HINSTANCE instance = GetModuleHandleW(nullptr);
@@ -120,6 +140,7 @@ DWORD WINAPI Pipeline::threadMain(void* parameter) {
     windowClass.lpszClassName = kWindowClass;
     RegisterClassW(&windowClass);
     self->window_ = CreateWindowExW(0, kWindowClass, L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, instance, nullptr);
+    if (self->window_) SetWindowLongPtrW(self->window_, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
     MSG message;
     PeekMessageW(&message, nullptr, 0, 0, PM_NOREMOVE);  // creates the message queue
     SetEvent(self->ready_);
@@ -134,8 +155,38 @@ DWORD WINAPI Pipeline::threadMain(void* parameter) {
         TranslateMessage(&message);
         DispatchMessageW(&message);
     }
+    self->settleLateCopy();
     DestroyWindow(self->window_);
     return 0;
+}
+
+void Pipeline::watchLateCopy(LateCopy late) {
+    lateCopy_ = std::move(late);
+    AddClipboardFormatListener(window_);
+    SetTimer(window_, kLateCopyTimer, static_cast<UINT>(kLateCopyMs), nullptr);
+    // The copy may have landed just now, before the listener was in place.
+    if (GetClipboardSequenceNumber() != lateCopy_->sequenceBefore) settleLateCopy();
+}
+
+// The first clipboard change after the copy keys went unanswered decides. The user's clipboard
+// comes back only for a copy that is surely the late answer: made by the same program, within 5 s,
+// and with no key typed since, which could have been the user's own Ctrl+C. A copy the user makes
+// with the mouse in that time is not told apart.
+void Pipeline::settleLateCopy() {
+    if (!lateCopy_) return;
+    LateCopy late = std::move(*lateCopy_);
+    lateCopy_.reset();
+    RemoveClipboardFormatListener(window_);
+    KillTimer(window_, kLateCopyTimer);
+
+    DWORD sequence = GetClipboardSequenceNumber();
+    if (sequence == late.sequenceBefore) return;
+    DWORD owner = 0;
+    if (HWND window = GetClipboardOwner()) GetWindowThreadProcessId(window, &owner);
+    if (owner != late.process || nowMs() - late.sentAt > kLateCopyMs || HookThread::lastTypedAt() > late.sentAt) return;
+    WriteResult result = late.snapshot.restore(window_, sequence);
+    log::write(L"late copy in " + late.exe + L" after " + std::to_wstring(nowMs() - late.sentAt) + L" ms: user's clipboard " +
+               (result == WriteResult::Written ? std::wstring(L"put back") : describe(result)));
 }
 
 void Pipeline::run(Action action, bool fromMenu, DWORD postedAt) {
@@ -172,6 +223,20 @@ void Pipeline::run(Action action, bool fromMenu, DWORD postedAt) {
     Settings settings = settings_.snapshot();
     CopyKeys keys = screenReaderRunning() ? CopyKeys::Ctrl : settings.copyKeys;
 
+    // The layouts are settled before anything touches the clipboard.
+    LayoutSet layouts;
+    if (action == Action::Layout) {
+        layouts = readLayouts(settings.layoutPair);
+        if (layouts.pair.problem == PairChoice::Problem::NeedTwo) {
+            report.outcome = L"nothing done: two different keyboard layouts are needed";
+            return;
+        }
+        if (layouts.pair.problem == PairChoice::Problem::Ambiguous) {
+            report.outcome = L"nothing done: the layout pair has to be chosen in the settings";
+            return;
+        }
+    }
+
     ULONGLONG releaseStart = nowMs();
     while (synthetic::modifiersAreDown()) {
         if (nowMs() - releaseStart >= kModifierReleaseMs) {
@@ -185,6 +250,7 @@ void Pipeline::run(Action action, bool fromMenu, DWORD postedAt) {
     }
     report.notes.push_back(L"modifiers up after " + std::to_wstring(nowMs() - releaseStart) + L" ms");
 
+    settleLateCopy();
     ClipboardSnapshot::Failure failure;
     auto snapshot = ClipboardSnapshot::take(window_, cancel_, &failure);
     if (!snapshot) {
@@ -194,6 +260,11 @@ void Pipeline::run(Action action, bool fromMenu, DWORD postedAt) {
     report.notes.push_back(L"clipboard snapshot " + std::to_wstring(snapshot->byteCount()) + L" bytes in " +
                            std::to_wstring(snapshot->formatCount()) + L" formats" +
                            (snapshot->skippedCount() ? L", " + std::to_wstring(snapshot->skippedCount()) + L" skipped" : L""));
+    // Puts the user's clipboard back, but never over anything copied after `expected`.
+    auto restore = [&](std::optional<DWORD> expected, DWORD waitMs = 500) {
+        WriteResult result = snapshot->restore(window_, expected, waitMs);
+        if (result != WriteResult::Written) report.notes.push_back(std::wstring(L"user's clipboard ") + describe(result));
+    };
 
     if (!focusUnchanged(foreground)) {
         report.outcome = L"the focus moved before the copy";
@@ -203,83 +274,94 @@ void Pipeline::run(Action action, bool fromMenu, DWORD postedAt) {
     synthetic::copy(keys, foreground.layout);
     ULONGLONG copyStart = nowMs();
     while (GetClipboardSequenceNumber() == sequenceBefore) {
-        if (nowMs() - copyStart >= kCopyMs) {
-            report.outcome = L"nothing selected, or the program ignored the copy keys";
-            return;
-        }
-        if (!pumpingWait(5, cancel_)) {
-            // The copy may still land later; the clipboard was not touched by Klats itself.
-            report.outcome = quitting;
-            return;
-        }
+        bool timedOut = nowMs() - copyStart >= kCopyMs;
+        bool cancelled = !timedOut && !pumpingWait(5, cancel_);
+        if (!timedOut && !cancelled) continue;
+        // A busy program may still answer the copy keys and replace the user's clipboard.
+        watchLateCopy({std::move(*snapshot), sequenceBefore, foreground.process, foreground.exe, copyStart});
+        report.outcome = cancelled ? quitting : L"nothing selected, or the program ignored the copy keys";
+        return;
     }
     ULONGLONG copyLatency = nowMs() - copyStart;
     report.notes.push_back(L"copy answered in " + std::to_wstring(copyLatency) + L" ms");
 
-    auto copied = readCopiedText(window_, cancel_);
-    if (!copied || copied->text.empty()) {
-        snapshot->restore(window_);
+    auto copied = readCopiedText(window_, cancel_, foreground.layout);
+    if (!copied) {
+        restore(std::nullopt);
+        report.outcome = L"could not read the clipboard";
+        return;
+    }
+    if (copied->tooLarge) {
+        restore(copied->sequence);
+        report.outcome = L"nothing done: the selection is too large";
+        return;
+    }
+    if (copied->text.empty()) {
+        restore(copied->sequence);
         report.outcome = L"the selection is not text";
         return;
     }
-    if (copied->lineCopy) {
-        snapshot->restore(window_);
+    if (copied->lineCopy || looksLikeLineCopy(foreground.exe, copied->text)) {
+        restore(copied->sequence);
         report.outcome = L"nothing selected: the editor copied the whole line";
         return;
     }
     const std::wstring& text = copied->text;
-    report.notes.push_back(std::to_wstring(unicode::graphemeCount(text)) + L" characters");
+    report.notes.push_back(std::to_wstring(unicode::graphemeCount(text)) + L" characters" + (copied->columnCopy ? L" in a column" : L""));
 
     std::wstring converted;
-    std::optional<KeyboardLayout> targetLayout;
+    const KeyboardLayout* targetLayout = nullptr;
     if (action == Action::Case) {
         converted = convertCase(text, settings.caseMode);
     } else {
-        auto pair = resolvePair(settings.layoutPair);
-        if (!pair) {
-            snapshot->restore(window_);
-            report.outcome = L"two keyboard layouts are needed";
-            return;
-        }
-        auto tableA = buildTable(pair->first);
-        auto tableB = buildTable(pair->second);
-        if (!tableA || !tableB) {
-            snapshot->restore(window_);
-            report.outcome = L"could not read a keyboard layout";
-            return;
-        }
-        Direction tieBreak = sameLayout(foreground.layout, pair->second.hkl) ? Direction::BToA : Direction::AToB;
-        Conversion result = convertLayout(text, *tableA, *tableB, tieBreak);
+        const KeyboardLayout& first = layouts.layouts[layouts.pair.first];
+        const KeyboardLayout& second = layouts.layouts[layouts.pair.second];
+        Direction tieBreak = sameLayout(foreground.layout, second.hkl) ? Direction::BToA : Direction::AToB;
+        Conversion result = convertLayout(text, layouts.tables[layouts.pair.first], layouts.tables[layouts.pair.second], tieBreak);
         converted = std::move(result.text);
         bool forward = result.direction == Direction::AToB;
-        targetLayout = forward ? pair->second : pair->first;
-        report.notes.push_back((forward ? pair->first.id : pair->second.id) + L" → " + targetLayout->id);
+        targetLayout = forward ? &second : &first;
+        report.notes.push_back((forward ? first.id : second.id) + L" → " + targetLayout->id);
     }
 
     if (converted == text) {
-        snapshot->restore(window_);
+        restore(copied->sequence);
         report.outcome = L"nothing to change";
+        return;
+    }
+    // Only characters on keys change, never line breaks; anything else would be a bug, and a column
+    // pasted back with other breaks would come out skewed.
+    if (lineBreaks(converted) != lineBreaks(text)) {
+        restore(copied->sequence);
+        report.outcome = L"nothing done: the line breaks would change";
         return;
     }
     bool multiline = converted.find_first_of(L"\r\n") != std::wstring::npos;
     if (multiline && isCodeEditor(foreground.exe) && !copied->fromCodeEditor) {
         // Probably VS Code's terminal: pasting there runs every line as a command.
-        snapshot->restore(window_);
+        restore(copied->sequence);
         report.outcome = L"nothing done: several lines from a terminal inside the editor";
         return;
     }
+    // Nothing is published for a window that is already gone.
     if (!focusUnchanged(foreground) || skipReason(inspectForeground())) {
-        snapshot->restore(window_);
+        restore(copied->sequence);
         report.outcome = L"the focus moved before the paste";
         return;
     }
 
     HKL resultLayout = targetLayout ? targetLayout->hkl : foreground.layout;
-    LCID locale = MAKELCID(LOWORD(reinterpret_cast<ULONG_PTR>(resultLayout)), SORT_DEFAULT);
-    auto sequenceAfterWrite = publishText(window_, converted, locale, cancel_);
-    if (!sequenceAfterWrite) {
-        snapshot->restore(window_);
-        report.outcome = L"could not write the clipboard";
+    DWORD sequenceAfterWrite = 0;
+    WriteResult written = publishText(window_, converted, clipboardLocale(converted, resultLayout), copied->columnCopy, copied->sequence,
+                                      cancel_, &sequenceAfterWrite);
+    if (written != WriteResult::Written) {
+        // Something copied meanwhile is the user's now: it stays, and the old clipboard with it.
+        if (written == WriteResult::Changed) {
+            report.outcome = L"nothing done: the clipboard changed after the copy";
+        } else {
+            restore(written == WriteResult::Partial ? std::optional<DWORD>(sequenceAfterWrite) : std::optional<DWORD>(copied->sequence));
+            report.outcome = written == WriteResult::Cancelled ? quitting : L"could not write the clipboard";
+        }
         return;
     }
     ULONGLONG quietStart = nowMs();
@@ -288,6 +370,18 @@ void Pipeline::run(Action action, bool fromMenu, DWORD postedAt) {
         std::wstring names;
         for (const auto& name : readers) names += (names.empty() ? L"" : L", ") + (name.empty() ? L"unknown" : name);
         report.notes.push_back(L"waited " + std::to_wstring(nowMs() - quietStart) + L" ms for clipboard readers (" + names + L")");
+    }
+    // The last look before the keys go, with nothing in between: the focus may have moved during
+    // the write and the wait, and a quitting Klats puts the clipboard back instead of pasting.
+    if (WaitForSingleObject(cancel_, 0) == WAIT_OBJECT_0) {
+        restore(sequenceAfterWrite);
+        report.outcome = quitting;
+        return;
+    }
+    if (skipReason(inspectForeground()) || !focusUnchanged(foreground)) {
+        restore(sequenceAfterWrite);
+        report.outcome = L"the focus moved before the paste";
+        return;
     }
     synthetic::paste(keys, foreground.layout);
 
@@ -306,13 +400,9 @@ void Pipeline::run(Action action, bool fromMenu, DWORD postedAt) {
         }
     }
 
-    // A cancelled wait (Klats is quitting, Windows shuts down) restores right away.
-    pumpingWait(restoreDelay(copyLatency), cancel_);
-    if (GetClipboardSequenceNumber() == *sequenceAfterWrite) {
-        if (!snapshot->restore(window_)) report.notes.push_back(L"clipboard restored only partly");
-    } else {
-        report.notes.push_back(L"clipboard changed meanwhile, not restored");
-    }
+    // Klats quitting (or Windows shutting down) shortens the wait, but the paste still gets a moment.
+    if (!pumpingWait(restoreDelay(copyLatency), cancel_)) pumpingWait(kPasteLandingMs, nullptr);
+    restore(sequenceAfterWrite, kFinalRestoreWaitMs);
     report.outcome = L"replaced";
 }
 

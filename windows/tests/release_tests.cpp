@@ -141,6 +141,31 @@ TEST("Лента релизов: установщик для своей архи
     CHECK(!newest(feed({entry("windows-v1.0.0")}), "x64/../evil").has_value());
 }
 
+TEST("Лента релизов: все Windows-релизы страницы, от новых к старым, и метки для следующей страницы") {
+    auto page = klats::readReleaseFeed(feed({entry("v0.4.0"), entry("windows-v0.2.0"), entry("windows-v0.3.0-beta"),
+                                              entry("windows-v0.1.0"), entry("windows-v0.2.1")}),
+                                         kRepository, "x64");
+    CHECK(page.has_value());
+    if (page) {
+        CHECK_EQ(page->entries, 5u);
+        CHECK_EQ(page->firstTag, std::string("v0.4.0"));
+        CHECK_EQ(page->lastTag, std::string("windows-v0.2.1"));
+        CHECK_EQ(page->releases.size(), 3u);
+        if (page->releases.size() == 3) {
+            CHECK_EQ(page->releases[0].version.toString(), std::wstring(L"0.2.1"));
+            CHECK_EQ(page->releases[1].version.toString(), std::wstring(L"0.2.0"));
+            CHECK_EQ(page->releases[2].version.toString(), std::wstring(L"0.1.0"));
+        }
+    }
+}
+
+TEST("Лента релизов: страница без Windows-релизов — повод заглянуть дальше") {
+    auto page = klats::readReleaseFeed(feed({entry("v0.4.0"), entry("windows-v0.3.0-beta")}), kRepository, "x64");
+    CHECK(page && page->releases.empty() && page->entries == 2 && page->lastTag == "windows-v0.3.0-beta");
+    auto empty = klats::readReleaseFeed(feed({}), kRepository, "x64");
+    CHECK(empty && empty->entries == 0 && empty->releases.empty());
+}
+
 TEST("Лента релизов: мусор и слишком большой ответ") {
     CHECK(!newest("").has_value());
     CHECK(!newest("not a feed").has_value());

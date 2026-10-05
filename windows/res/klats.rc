@@ -1,10 +1,13 @@
 // Without this pragma rc.exe reads the file in the ANSI code page and silently garbles «Клац».
 #pragma code_page(65001)
 #include <winres.h>
+#include "resource.h"
 #include "version.h"
 
 // Resource 1 is the app icon: the exe, the Start menu shortcut, the windows and dialogs.
-1 ICON "klats.ico"
+IDI_APP ICON "klats.ico"
+
+#include "dialogs.rc2"
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION KLATS_VERSION_MAJOR, KLATS_VERSION_MINOR, KLATS_VERSION_PATCH, 0

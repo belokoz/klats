@@ -15,7 +15,7 @@ constexpr UINT kIconId = 1;
 
 // The menu bar glyph of the Mac version, scaled from its 18-point canvas: a rounded keycap
 // outline and a K made of three strokes.
-HICON drawGlyph(int size, bool lightTaskbar, bool dimmed) {
+HICON drawGlyph(int size, Gdiplus::Color ink) {
     using namespace Gdiplus;
     Bitmap bitmap(size, size, PixelFormat32bppARGB);
     {
@@ -24,8 +24,6 @@ HICON drawGlyph(int size, bool lightTaskbar, bool dimmed) {
         graphics.SetPixelOffsetMode(PixelOffsetModeHalf);
         graphics.Clear(Color(0, 0, 0, 0));
 
-        BYTE alpha = dimmed ? 110 : 255;
-        Color ink = lightTaskbar ? Color(alpha, 0x1A, 0x1A, 0x1A) : Color(alpha, 0xFF, 0xFF, 0xFF);
         float scale = size / 18.0f;
         // Thin strokes vanish at 16 px, so they never go below a pixel and a half.
         float frameWidth = std::max(1.5f * scale, 1.5f);
@@ -63,11 +61,29 @@ HICON drawGlyph(int size, bool lightTaskbar, bool dimmed) {
 }
 
 int trayIconSize() {
-    // The taskbar draws notification icons at the small-icon size of the primary monitor.
-    HDC screen = GetDC(nullptr);
-    int dpi = GetDeviceCaps(screen, LOGPIXELSX);
-    ReleaseDC(nullptr, screen);
-    return GetSystemMetricsForDpi(SM_CXSMICON, static_cast<UINT>(dpi));
+    // The taskbar draws notification icons at the small-icon size of its own monitor. Its window
+    // knows the current scale; the system DPI stays as it was at sign-in.
+    UINT dpi = 0;
+    if (HWND taskbar = FindWindowW(L"Shell_TrayWnd", nullptr)) dpi = GetDpiForWindow(taskbar);
+    if (!dpi) dpi = GetDpiForSystem();
+    return GetSystemMetricsForDpi(SM_CXSMICON, dpi);
+}
+
+bool highContrast() {
+    HIGHCONTRASTW contrast{sizeof contrast};
+    return SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof contrast, &contrast, 0) && (contrast.dwFlags & HCF_HIGHCONTRASTON);
+}
+
+// White on a dark taskbar, dark on a light one, faded while paused. A contrast theme paints the
+// taskbar in its own colours and leaves the light/dark setting as it was: the theme's text colour,
+// never faded.
+Gdiplus::Color glyphInk(bool paused) {
+    if (highContrast()) {
+        COLORREF color = GetSysColor(paused ? COLOR_GRAYTEXT : COLOR_WINDOWTEXT);
+        return Gdiplus::Color(255, GetRValue(color), GetGValue(color), GetBValue(color));
+    }
+    BYTE alpha = paused ? 110 : 255;
+    return taskbarIsLight() ? Gdiplus::Color(alpha, 0x1A, 0x1A, 0x1A) : Gdiplus::Color(alpha, 0xFF, 0xFF, 0xFF);
 }
 
 }  // namespace
@@ -110,7 +126,7 @@ void TrayIcon::refresh(bool paused, const wchar_t* tooltip) {
     if (!owner_) return;
     wcsncpy_s(tooltip_, tooltip, _TRUNCATE);
     HICON previous = icon_;
-    icon_ = drawGlyph(trayIconSize(), taskbarIsLight(), paused);
+    icon_ = drawGlyph(trayIconSize(), glyphInk(paused));
     if (shown_ && push(NIM_MODIFY)) {
         // Updated in place.
     } else if (push(NIM_ADD)) {
@@ -129,6 +145,15 @@ void TrayIcon::refresh(bool paused, const wchar_t* tooltip) {
         shown_ = false;  // the taskbar is not there yet; TaskbarCreated brings Klats back
     }
     if (previous) DestroyIcon(previous);
+}
+
+void TrayIcon::focus() {
+    if (!owner_) return;
+    NOTIFYICONDATAW data{};
+    data.cbSize = sizeof data;
+    data.hWnd = owner_;
+    data.uID = kIconId;
+    Shell_NotifyIconW(NIM_SETFOCUS, &data);
 }
 
 void TrayIcon::remove() {

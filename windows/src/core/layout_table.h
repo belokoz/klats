@@ -40,6 +40,9 @@ public:
     std::optional<KeyStroke> stroke(std::wstring_view character) const;
     bool contains(std::wstring_view character) const { return stroke(character).has_value(); }
 
+    // ToUnicodeEx writes at most 16 units per key; anything far longer cannot be a key's character.
+    static constexpr size_t kLongestKey = 64;
+
 private:
     std::wstring id_;
     std::map<KeyStroke, std::wstring> forward_;

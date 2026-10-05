@@ -105,7 +105,12 @@ std::wstring nfc(std::wstring_view text) {
 }
 
 bool canonicallyEqual(std::wstring_view a, std::wstring_view b) {
-    return a == b || nfc(a) == nfc(b);
+    if (a == b) return true;
+    // Normalising a cluster of thousands of out-of-order combining marks takes quadratic time. The
+    // callers compare a cluster with its own case mapping, which never yields a different but
+    // canonically equivalent spelling, so plain comparison is exact for long clusters.
+    if (a.size() > 32 || b.size() > 32) return false;
+    return nfc(a) == nfc(b);
 }
 
 std::wstring uppercased(std::wstring_view text) { return mapScalars(text, true); }

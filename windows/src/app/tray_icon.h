@@ -4,7 +4,8 @@
 namespace klats::app {
 
 // The icon in the notification area: a keycap outline with a K, white on a dark taskbar and dark on
-// a light one, drawn for the exact size the taskbar uses.
+// a light one (in a contrast theme, the theme's text colour), drawn for the exact size the taskbar
+// uses.
 //
 // Identified by window and id, not by GUID: Windows binds an icon GUID to the path of an unsigned
 // exe, and the icon would vanish once Klats moves.
@@ -15,6 +16,8 @@ public:
     bool add(HWND owner, UINT callbackMessage, bool paused, const wchar_t* tooltip);
     // Redraws after a theme, DPI or pause change. Also re-adds the icon after Explorer restarted.
     void refresh(bool paused, const wchar_t* tooltip);
+    // Gives the keyboard focus back to the notification area, after a menu that opened nothing.
+    void focus();
     void remove();
     bool shown() const { return shown_; }
 

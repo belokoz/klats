@@ -154,25 +154,15 @@ std::vector<LayoutTable::Row> layoutRows(HKL layout) {
     return rows;
 }
 
-std::optional<LayoutTable> buildTable(const KeyboardLayout& layout) {
-    auto rows = layoutRows(layout.hkl);
-    if (rows.empty()) return std::nullopt;
-    return LayoutTable(layout.id, rows);
-}
-
-std::optional<std::pair<KeyboardLayout, KeyboardLayout>> resolvePair(const std::vector<std::wstring>& chosen) {
-    std::vector<KeyboardLayout> layouts = enabledLayouts();
-    if (chosen.size() == 2 && chosen[0] != chosen[1]) {
-        const KeyboardLayout* first = nullptr;
-        const KeyboardLayout* second = nullptr;
-        for (const auto& layout : layouts) {
-            if (layout.id == chosen[0]) first = &layout;
-            if (layout.id == chosen[1]) second = &layout;
-        }
-        if (first && second) return std::make_pair(*first, *second);
-    }
-    if (layouts.size() < 2) return std::nullopt;
-    return std::make_pair(layouts[0], layouts[1]);
+LayoutSet readLayouts(const std::vector<std::wstring>& chosen) {
+    LayoutSet set;
+    set.layouts = enabledLayouts();
+    set.tables.reserve(set.layouts.size());
+    for (const auto& layout : set.layouts) set.tables.emplace_back(layout.id, layoutRows(layout.hkl));
+    std::vector<const LayoutTable*> tables;
+    for (const auto& table : set.tables) tables.push_back(&table);
+    set.pair = choosePair(chosen, tables);
+    return set;
 }
 
 void requestLayout(HWND window, HKL layout) {

@@ -15,6 +15,9 @@ namespace {
 constexpr size_t kMaxFormatBytes = 64 * 1024 * 1024;
 constexpr ULONGLONG kSnapshotBudgetMs = 300;
 constexpr DWORD kOpenBudgetMs = 500;
+// About 0.1 s of conversion. Larger selections are left alone: they would take seconds with nothing
+// on the screen, while the user goes on working in the same window.
+constexpr size_t kMaxCopiedChars = 512 * 1024;
 
 // Formats whose presence is the data: editors paste a whole line or a column because of them.
 // Reading them makes the source render nothing, so they come back as one zero byte.
@@ -55,20 +58,37 @@ std::wstring formatName(UINT format) {
     return std::wstring(name, static_cast<size_t>(length > 0 ? length : 0));
 }
 
-bool openClipboard(HWND owner, HANDLE cancel) {
+enum class Open { Opened, Busy, Changed, Cancelled };
+
+// Retries while another program holds the clipboard. With `expected`, gives up as soon as the
+// clipboard changes, and checks once more after opening, where nobody else can change it.
+Open openClipboard(HWND owner, HANDLE cancel, DWORD budgetMs, std::optional<DWORD> expected = std::nullopt) {
     ULONGLONG start = nowMs();
-    for (int attempt = 0;; ++attempt) {
-        if (OpenClipboard(owner)) return true;
+    while (true) {
+        if (OpenClipboard(owner)) {
+            if (!expected || GetClipboardSequenceNumber() == *expected) return Open::Opened;
+            CloseClipboard();
+            return Open::Changed;
+        }
+        if (expected && GetClipboardSequenceNumber() != *expected) return Open::Changed;
         ULONGLONG elapsed = nowMs() - start;
-        if (elapsed >= kOpenBudgetMs) break;
+        if (elapsed >= budgetMs) break;
         // Often at first: another program usually holds it for a millisecond or two.
-        if (!pumpingWait(elapsed < 20 ? 1 : 10, cancel)) return false;
+        if (!pumpingWait(elapsed < 20 ? 1 : 10, cancel)) return Open::Cancelled;
     }
     DWORD holderProcess = 0;
     if (HWND holder = GetOpenClipboardWindow()) GetWindowThreadProcessId(holder, &holderProcess);
-    log::write(L"clipboard: could not open it for 0.5 s; held by " +
+    log::write(L"clipboard: could not open it for " + std::to_wstring(budgetMs) + L" ms; held by " +
                (holderProcess ? processName(holderProcess) : std::wstring(L"a program without a window")));
-    return false;
+    return Open::Busy;
+}
+
+WriteResult writeResult(Open open) {
+    switch (open) {
+    case Open::Changed: return WriteResult::Changed;
+    case Open::Cancelled: return WriteResult::Cancelled;
+    default: return WriteResult::Busy;
+    }
 }
 
 HGLOBAL globalCopy(const void* data, size_t size) {
@@ -97,6 +117,11 @@ bool containsUtf16(const std::vector<BYTE>& bytes, std::wstring_view needle) {
     auto* begin = reinterpret_cast<const BYTE*>(needle.data());
     size_t size = needle.size() * sizeof(wchar_t);
     return std::search(bytes.begin(), bytes.end(), begin, begin + size) != bytes.end();
+}
+
+bool containsBytes(const std::vector<BYTE>& bytes, std::string_view needle) {
+    return std::search(bytes.begin(), bytes.end(), needle.begin(), needle.end(),
+                       [](BYTE a, char b) { return a == static_cast<BYTE>(b); }) != bytes.end();
 }
 
 std::optional<std::vector<BYTE>> readBytes(UINT format) {
@@ -139,7 +164,7 @@ std::optional<ClipboardSnapshot> ClipboardSnapshot::take(HWND owner, HANDLE canc
             return std::nullopt;
         }
     }
-    if (!openClipboard(owner, cancel)) {
+    if (openClipboard(owner, cancel, kOpenBudgetMs) != Open::Opened) {
         *failure = Failure::Busy;
         return std::nullopt;
     }
@@ -242,8 +267,10 @@ std::optional<ClipboardSnapshot> ClipboardSnapshot::take(HWND owner, HANDLE canc
     return snapshot;
 }
 
-bool ClipboardSnapshot::restore(HWND owner) const {
-    if (!openClipboard(owner, nullptr)) return false;
+WriteResult ClipboardSnapshot::restore(HWND owner, std::optional<DWORD> expected, DWORD waitMs) const {
+    // Never cancelled: a quitting Klats puts the clipboard back before anything else.
+    Open open = openClipboard(owner, nullptr, waitMs, expected);
+    if (open != Open::Opened) return writeResult(open);
     EmptyClipboard();
     bool complete = true;
     for (const Item& item : items_) {
@@ -273,7 +300,7 @@ bool ClipboardSnapshot::restore(HWND owner) const {
         complete = complete && ok;
     }
     CloseClipboard();
-    return complete;
+    return complete ? WriteResult::Written : WriteResult::Partial;
 }
 
 size_t ClipboardSnapshot::byteCount() const {
@@ -299,20 +326,92 @@ const wchar_t* describe(ClipboardSnapshot::Failure failure) {
     return L"no failure";
 }
 
-std::optional<CopiedText> readCopiedText(HWND owner, HANDLE cancel) {
-    if (!openClipboard(owner, cancel)) return std::nullopt;
+const wchar_t* describe(WriteResult result) {
+    switch (result) {
+    case WriteResult::Written: return L"written";
+    case WriteResult::Partial: return L"written only partly";
+    case WriteResult::Busy: return L"busy, not written";
+    case WriteResult::Changed: return L"changed meanwhile, not written";
+    case WriteResult::Cancelled: return L"not written: Klats is quitting";
+    }
+    return L"unknown";
+}
+
+std::optional<CopiedText> readCopiedText(HWND owner, HANDLE cancel, HKL layout) {
+    if (openClipboard(owner, cancel, kOpenBudgetMs) != Open::Opened) return std::nullopt;
     CopiedText copied;
-    if (HANDLE handle = GetClipboardData(CF_UNICODETEXT)) {
+    copied.sequence = GetClipboardSequenceNumber();  // rendering delayed formats does not move it
+
+    static const UINT lineSelect = RegisterClipboardFormatW(L"MSDEVLineSelect");
+    static const UINT lineCopyTag = RegisterClipboardFormatW(L"VisualStudioEditorOperationsLineCutCopyClipboardTag");
+    static const UINT columnSelect = RegisterClipboardFormatW(L"MSDEVColumnSelect");
+    static const UINT blockType = RegisterClipboardFormatW(L"Borland IDE Block Type");
+    static const UINT customData = RegisterClipboardFormatW(L"Chromium Web Custom MIME Data Format");
+
+    // Where each text format sits in the list, and JetBrains' copy options, named after a Java class.
+    int position = 0, textAt = -1, localeAt = -1, unicodeAt = -1;
+    UINT jetBrainsOptions = 0;
+    for (UINT format = EnumClipboardFormats(0); format; format = EnumClipboardFormats(format), ++position) {
+        if (format == CF_TEXT) {
+            textAt = position;
+        } else if (format == CF_LOCALE) {
+            localeAt = position;
+        } else if (format == CF_UNICODETEXT) {
+            unicodeAt = position;
+        } else if (format >= 0xC000 && !jetBrainsOptions) {
+            std::wstring name = formatName(format);
+            if (name.starts_with(L"JAVA_DATAFLAVOR:") && name.find(L"CopyPasteOptionsTransferableData") != std::wstring::npos) {
+                jetBrainsOptions = format;
+            }
+        }
+    }
+
+    // An ANSI program puts CF_TEXT alone. Windows adds CF_LOCALE from the layout on at the copy and
+    // makes the Unicode text in that layout's code page, so with English on, a Russian program's
+    // «пРИВЕТ» arrives as «ïÐÈÂÅÒ». The program wrote the bytes in the system code page: read them so.
+    // A CF_LOCALE other than the layout's was set by the program on purpose and is trusted.
+    bool ansiOnly = false;
+    if (textAt >= 0 && unicodeAt > textAt && localeAt >= 0 && localeAt < unicodeAt) {
+        HANDLE handle = GetClipboardData(CF_LOCALE);
+        if (handle && GlobalSize(handle) >= sizeof(DWORD)) {
+            if (auto* locale = static_cast<const DWORD*>(GlobalLock(handle))) {
+                ansiOnly = LANGIDFROMLCID(*locale) == LOWORD(reinterpret_cast<ULONG_PTR>(layout));
+                GlobalUnlock(handle);
+            }
+        }
+    }
+    if (ansiOnly) {
+        if (HANDLE handle = GetClipboardData(CF_TEXT)) {
+            if (auto* text = static_cast<const char*>(GlobalLock(handle))) {
+                size_t length = strnlen(text, GlobalSize(handle));
+                if (length > kMaxCopiedChars) {
+                    copied.tooLarge = true;
+                } else if (length) {
+                    int size = MultiByteToWideChar(CP_ACP, 0, text, static_cast<int>(length), nullptr, 0);
+                    if (size > 0) {
+                        copied.text.resize(static_cast<size_t>(size));
+                        MultiByteToWideChar(CP_ACP, 0, text, static_cast<int>(length), copied.text.data(), size);
+                    }
+                }
+                GlobalUnlock(handle);
+            }
+        }
+    } else if (HANDLE handle = GetClipboardData(CF_UNICODETEXT)) {
         if (auto* text = static_cast<const wchar_t*>(GlobalLock(handle))) {
-            size_t capacity = GlobalSize(handle) / sizeof(wchar_t);
-            copied.text.assign(text, wcsnlen(text, capacity));  // up to the first NUL, as Chromium reads it
+            size_t length = wcsnlen(text, GlobalSize(handle) / sizeof(wchar_t));  // up to the first NUL, as Chromium reads it
+            if (length > kMaxCopiedChars) copied.tooLarge = true;
+            else copied.text.assign(text, length);
             GlobalUnlock(handle);
         }
     }
-    static const UINT lineSelect = RegisterClipboardFormatW(L"MSDEVLineSelect");
-    static const UINT lineCopyTag = RegisterClipboardFormatW(L"VisualStudioEditorOperationsLineCutCopyClipboardTag");
-    static const UINT customData = RegisterClipboardFormatW(L"Chromium Web Custom MIME Data Format");
+
     copied.lineCopy = IsClipboardFormatAvailable(lineSelect) || IsClipboardFormatAvailable(lineCopyTag);
+    // Scintilla (Notepad++) and Visual Studio mark a column selection, and Scintilla a multiple
+    // selection too, with one of these.
+    copied.columnCopy = IsClipboardFormatAvailable(columnSelect);
+    if (!copied.columnCopy && IsClipboardFormatAvailable(blockType)) {
+        if (auto bytes = readBytes(blockType)) copied.columnCopy = !bytes->empty() && (*bytes)[0] == 0x02;
+    }
     if (IsClipboardFormatAvailable(customData)) {
         // VS Code's editor stores «vscode-editor-data» (with isFromEmptySelection) in Chromium's
         // custom data; its terminal does not.
@@ -322,8 +421,33 @@ std::optional<CopiedText> readCopiedText(HWND owner, HANDLE cancel) {
             SecureZeroMemory(bytes->data(), bytes->size());
         }
     }
+    if (jetBrainsOptions) {
+        // IntelliJ-based IDEs (2022.3 and later) serialise their copy options with Java. A boolean
+        // field's value follows the end of the class description: the field name, TC_ENDBLOCKDATA
+        // (0x78), TC_NULL (0x70), then 1 for true. The field is isCopiedFromEmptySelection, in early
+        // builds isEntireLineFromEmptySelection.
+        if (auto bytes = readBytes(jetBrainsOptions)) {
+            if (containsBytes(*bytes, std::string_view("FromEmptySelection\x78\x70\x01"))) copied.lineCopy = true;
+            SecureZeroMemory(bytes->data(), bytes->size());
+        }
+    }
     CloseClipboard();
     return copied;
+}
+
+LCID clipboardLocale(const std::wstring& text, HKL layout) {
+    LCID system = GetSystemDefaultLCID();
+    DWORD codePage = 0;
+    bool fits = GetLocaleInfoW(system, LOCALE_IDEFAULTANSICODEPAGE | LOCALE_RETURN_NUMBER, reinterpret_cast<LPWSTR>(&codePage),
+                               sizeof codePage / sizeof(wchar_t)) &&
+                codePage == GetACP() && codePage != CP_UTF8;
+    if (fits && !text.empty()) {
+        BOOL usedDefault = FALSE;
+        fits = WideCharToMultiByte(codePage, WC_NO_BEST_FIT_CHARS, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr,
+                                   &usedDefault) > 0 &&
+               !usedDefault;
+    }
+    return fits ? system : MAKELCID(LOWORD(reinterpret_cast<ULONG_PTR>(layout)), SORT_DEFAULT);
 }
 
 std::vector<std::wstring> waitForQuietClipboard(HANDLE cancel, ULONGLONG quietMs, ULONGLONG limitMs) {
@@ -347,15 +471,23 @@ std::vector<std::wstring> waitForQuietClipboard(HANDLE cancel, ULONGLONG quietMs
     return holders;
 }
 
-std::optional<DWORD> publishText(HWND owner, const std::wstring& text, LCID locale, HANDLE cancel) {
-    if (!openClipboard(owner, cancel)) return std::nullopt;
+WriteResult publishText(HWND owner, const std::wstring& text, LCID locale, bool columnCopy, DWORD expected, HANDLE cancel,
+                        DWORD* sequence) {
+    Open open = openClipboard(owner, cancel, kOpenBudgetMs, expected);
+    if (open != Open::Opened) return writeResult(open);
     EmptyClipboard();
     bool ok = setData(CF_UNICODETEXT, globalCopy(text.c_str(), (text.size() + 1) * sizeof(wchar_t)));
     if (ok) {
-        // Windows makes CF_TEXT from CF_UNICODETEXT through CF_LOCALE; without the right locale
-        // Cyrillic would turn into question marks for programs that read CF_TEXT.
         DWORD lcid = locale;
         setData(CF_LOCALE, globalCopy(&lcid, sizeof lcid));
+        if (columnCopy) {
+            // Without these marks the column comes back as running text, and the lines shift.
+            static const UINT columnSelect = RegisterClipboardFormatW(L"MSDEVColumnSelect");
+            static const UINT blockType = RegisterClipboardFormatW(L"Borland IDE Block Type");
+            const BYTE column = 0x02;
+            setData(columnSelect, globalCopy(nullptr, 0));
+            setData(blockType, globalCopy(&column, 1));
+        }
         const DWORD zero = 0;
         setData(RegisterClipboardFormatW(L"ExcludeClipboardContentFromMonitorProcessing"), globalCopy(&zero, 1));
         setData(RegisterClipboardFormatW(L"CanIncludeInClipboardHistory"), globalCopy(&zero, sizeof zero));
@@ -363,8 +495,8 @@ std::optional<DWORD> publishText(HWND owner, const std::wstring& text, LCID loca
         setData(RegisterClipboardFormatW(L"Clipboard Viewer Ignore"), globalCopy(&zero, 1));
     }
     CloseClipboard();
-    if (!ok) return std::nullopt;
-    return GetClipboardSequenceNumber();
+    *sequence = GetClipboardSequenceNumber();
+    return ok ? WriteResult::Written : WriteResult::Partial;
 }
 
 }  // namespace klats::app

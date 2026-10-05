@@ -28,6 +28,7 @@ add_library(klats_core STATIC
     src/core/chord_detector.cpp
     src/core/hotkey.cpp
     src/core/layout_converter.cpp
+    src/core/layout_pair.cpp
     src/core/layout_table.cpp
     src/core/release.cpp
     src/core/unicode.cpp
@@ -45,21 +46,27 @@ add_executable(Klats WIN32
     src/app/foreground.cpp
     src/app/hook_thread.cpp
     src/app/hotkey_display.cpp
+    src/app/hotkey_recorder.cpp
     src/app/log.cpp
+    src/app/login_item.cpp
     src/app/main.cpp
+    src/app/onboarding_window.cpp
     src/app/pipeline.cpp
     src/app/settings_store.cpp
+    src/app/settings_window.cpp
     src/app/strings.cpp
     src/app/synthetic_keys.cpp
     src/app/tray_icon.cpp
+    src/app/update_checker.cpp
     res/klats.rc
     res/klats.manifest
 )
 target_include_directories(Klats PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}/generated")
-target_link_libraries(Klats PRIVATE klats_layouts comctl32 gdi32 gdiplus imm32 ole32 shell32 winmm wtsapi32)
+target_link_libraries(Klats PRIVATE klats_layouts comctl32 gdi32 gdiplus imm32 ole32 shell32 winhttp winmm wtsapi32)
 # Statically imported DLLs that are not KnownDLLs load from System32 only, never from Downloads.
 target_link_options(Klats PRIVATE /DEPENDENTLOADFLAG:0x800)
-set_source_files_properties(res/klats.rc PROPERTIES OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/res/klats.ico")
+set_source_files_properties(res/klats.rc PROPERTIES OBJECT_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/res/klats.ico;${CMAKE_CURRENT_SOURCE_DIR}/res/dialogs.rc2;${CMAKE_CURRENT_SOURCE_DIR}/res/resource.h")
 
 add_executable(klats_tests
     tests/test_main.cpp
@@ -67,6 +74,7 @@ add_executable(klats_tests
     tests/chord_detector_tests.cpp
     tests/hotkey_tests.cpp
     tests/layout_converter_tests.cpp
+    tests/layout_pair_tests.cpp
     tests/release_tests.cpp
 )
 target_include_directories(klats_tests PRIVATE tests)

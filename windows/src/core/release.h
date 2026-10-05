@@ -31,10 +31,25 @@ struct WindowsRelease {
     std::wstring downloadURL;  // the installer itself
 };
 
+// One page of GitHub's releases.atom: at most the 10 newest entries of the repository, Mac and
+// Windows releases and test builds alike.
+struct FeedPage {
+    std::vector<WindowsRelease> releases;  // stable Windows releases on the page, newest version first
+    size_t entries = 0;                    // every entry on the page
+    std::string firstTag;                  // to notice a page that repeats
+    std::string lastTag;                   // for the next page: releases.atom?after=<lastTag>
+};
+
 // Releases of this repository have Atom entry ids «tag:github.com,2008:Repository/<id>/<tag>».
 // Windows releases are tagged «windows-vX.Y.Z» with digits and dots only; test builds carry a
-// suffix and are skipped. Nothing comes back for anything else, including a malformed feed.
-// `arch` names the installer: Klats-X.Y.Z-windows-<arch>.exe.
+// suffix and are skipped. A malformed or oversized feed gives nothing. `arch` names the installer:
+// Klats-X.Y.Z-windows-<arch>.exe.
+//
+// A tag without a published release (deleted, or pushed before its files) looks exactly like a
+// release in the feed, so the caller checks that the installer is really there before offering it.
+std::optional<FeedPage> readReleaseFeed(std::string_view atom, std::string_view repositoryID, std::string_view arch);
+
+// The first candidate of the page, for the simple cases.
 std::optional<WindowsRelease> newestWindowsRelease(std::string_view atom, std::string_view repositoryID,
                                                    std::string_view arch);
 

@@ -31,18 +31,26 @@ public:
     HookThread(const HookThread&) = delete;
     HookThread& operator=(const HookThread&) = delete;
 
-    // Actions go to `actionTarget` as WM_KLATS_ACTION; WM_KLATS_HOOK_FAILED goes to `statusTarget`.
+    // Actions go to `actionTarget` as WM_KLATS_ACTION; WM_KLATS_HOOK_STATUS goes to `statusTarget`.
     bool start(HWND actionTarget, HWND statusTarget, bool installHook);
     void stop();
 
     void configure(const std::vector<Binding>& bindings);
     void setPaused(bool paused);
+    // While `recorder` (the settings window) is in front, every key goes to it as
+    // WM_KLATS_RECORD_KEY instead of to Windows, and the hotkeys rest. Null ends the recording.
+    void setRecorder(HWND recorder);
     // After unlocking and waking up: Windows may have dropped the hook without a word.
     void reinstall();
-    // After locking: key releases went to the secure desktop and never came here.
+    // After locking: key releases went to the lock screen and never came here. A switch to the
+    // secure desktop (Ctrl+Alt+Del, UAC) resets the same way on its own.
     void reset();
 
     bool hookInstalled() const { return hookInstalled_.load(); }
+
+    // When a key last went on to a program (nowMs), modifiers and Klats's own keys aside: a copy
+    // made after it may be the user's own.
+    static ULONGLONG lastTypedAt();
 
 private:
     static DWORD WINAPI threadMain(void* self);

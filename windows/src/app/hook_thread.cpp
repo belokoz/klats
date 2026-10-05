@@ -1,10 +1,11 @@
 #include "hook_thread.h"
 
-#include "log.h"
 #include "synthetic_keys.h"
 
 #include "core/chord_detector.h"
 
+#include <array>
+#include <atomic>
 #include <bitset>
 #include <memory>
 #include <optional>
@@ -19,7 +20,14 @@ enum : UINT {
     kReinstall,
     kReset,
     kMouseHook,                 // wParam: 1 to install, 0 to remove
+    kRecorder,                  // lParam: the window that records a shortcut, or null
 };
+
+// Longer than any repeat delay Windows offers, Filter Keys included (2 s): a key silent for this
+// long is not repeating, so its release went where the hook could not see it.
+constexpr double kRepeatGapSeconds = 2.5;
+
+constexpr DWORD kModifierKeys[] = {VK_LSHIFT, VK_RSHIFT, VK_LCONTROL, VK_RCONTROL, VK_LMENU, VK_RMENU, VK_LWIN, VK_RWIN};
 
 struct ChordBinding {
     Action action;
@@ -31,6 +39,7 @@ struct ChordBinding {
 struct HookState {
     HWND actionTarget = nullptr;
     HWND statusTarget = nullptr;
+    HWND recorder = nullptr;
     HHOOK keyboard = nullptr;
     HHOOK mouse = nullptr;
     std::vector<Binding> combos;
@@ -38,11 +47,13 @@ struct HookState {
     bool paused = false;
     std::bitset<256> down;       // keys held now, left and right modifiers apart
     std::bitset<256> swallowed;  // keys whose press Klats swallowed: their repeats and release go too
-    Modifiers modifiers;
+    std::array<double, 256> lastPress{};  // when each key last went down or repeated
+    Modifiers modifiers;         // the set the chord detectors last saw
     LARGE_INTEGER frequency{};
 };
 
 HookState* g_state = nullptr;
+std::atomic<ULONGLONG> g_lastTyped{0};
 
 // Klats's own clock: the time field of some events (AltGr) is sometimes zero.
 double seconds() {
@@ -73,11 +84,14 @@ std::optional<Modifier> modifierOf(DWORD vk) {
 
 Modifiers heldModifiers() {
     Modifiers held;
-    for (DWORD vk : {VK_LSHIFT, VK_RSHIFT, VK_LCONTROL, VK_RCONTROL, VK_LMENU, VK_RMENU, VK_LWIN, VK_RWIN}) {
+    for (DWORD vk : kModifierKeys) {
         if (g_state->down[vk]) held.insert(*modifierOf(vk));
     }
     return held;
 }
+
+// A press of a key thought held is its autorepeat, unless the key has been silent for too long.
+bool isRepeat(DWORD vk, double now) { return g_state->down[vk] && now - g_state->lastPress[vk] < kRepeatGapSeconds; }
 
 bool mouseButtonDown() {
     for (int vk : {VK_LBUTTON, VK_RBUTTON, VK_MBUTTON, VK_XBUTTON1, VK_XBUTTON2}) {
@@ -98,13 +112,18 @@ void otherInput() {
     for (auto& chord : g_state->chords) chord.detector.otherInput();
 }
 
-void modifiersChanged(Modifiers now) {
+void trackModifiers(Modifiers now) {
     HookState& s = *g_state;
     bool wasEmpty = s.modifiers.empty();
     s.modifiers = now;
     // Clicks and scrolling cancel a chord, so the mouse is watched while any modifier is down,
     // and only then: a permanent mouse hook would cost time on every mouse move.
     if (!s.chords.empty() && wasEmpty != now.empty()) PostThreadMessageW(GetCurrentThreadId(), kMouseHook, now.empty() ? 0 : 1, 0);
+}
+
+void modifiersChanged(Modifiers now) {
+    HookState& s = *g_state;
+    trackModifiers(now);
     double time = seconds();
     for (auto& chord : s.chords) {
         if (!chord.detector.flagsChanged(now, time) || s.paused) continue;
@@ -112,6 +131,63 @@ void modifiersChanged(Modifiers now) {
         if (mouseButtonDown()) continue;
         fire(chord.action, chord.hotkey.modifiers);
     }
+}
+
+// Puts the chord detectors back to rest after Klats lost track of the keys. Modifiers still held
+// count as other input: the chord has to be pressed again from the start.
+void restartChords() {
+    HookState& s = *g_state;
+    Modifiers held = heldModifiers();
+    trackModifiers(held);
+    double time = seconds();
+    for (auto& chord : s.chords) {
+        chord.detector.reset();
+        if (held.empty()) continue;
+        chord.detector.flagsChanged(held, time);
+        chord.detector.otherInput();
+    }
+}
+
+// A release that happens where the hook cannot see it, on the secure desktop or in an
+// administrator's window, leaves a modifier marked as held, and the hotkeys stop matching. Windows's
+// own key state tells: inside the callback it is current for every key but the one of this event,
+// so a held modifier, the pressed one included, that Windows reports as up was released unseen. It
+// only ever clears, since the call answers «up» whenever it may not look. Windows never saw the
+// press of a swallowed key, so those go by the clock, and only for the key pressed now.
+void dropLostReleases(DWORD pressedVk, double now) {
+    HookState& s = *g_state;
+    bool lost = false;
+    for (DWORD vk : kModifierKeys) {
+        if (!s.down[vk]) continue;
+        bool released = s.swallowed[vk] ? vk == pressedVk && !isRepeat(vk, now)
+                                        : !(GetAsyncKeyState(static_cast<int>(vk)) & 0x8000);
+        if (!released) continue;
+        s.down[vk] = false;
+        s.swallowed[vk] = false;
+        lost = true;
+    }
+    if (lost && !s.recorder) restartChords();
+}
+
+// While a shortcut is being recorded, its keys go to the settings window and nowhere else: Windows
+// would open Start on a lone Win and the menu bar on a lone Alt. A key that went down before the
+// recording began goes up the same way, so Windows never sees half a keystroke.
+bool record(DWORD vk, bool pressed, double now) {
+    HookState& s = *g_state;
+    if (pressed) {
+        bool repeat = isRepeat(vk, now);
+        s.down[vk] = true;
+        s.lastPress[vk] = now;
+        if (repeat) return s.swallowed[vk];
+        s.swallowed[vk] = true;
+    } else {
+        s.down[vk] = false;
+        if (!s.swallowed[vk]) return false;
+        s.swallowed[vk] = false;
+    }
+    LPARAM state = (static_cast<LPARAM>(heldModifiers().bits()) << 8) | (pressed ? 1 : 0);
+    PostMessageW(s.recorder, WM_KLATS_RECORD_KEY, vk, state);
+    return true;
 }
 
 // Returns true when the event must not reach the program.
@@ -125,36 +201,46 @@ bool keyEvent(const KBDLLHOOKSTRUCT& event) {
     bool pressed = !(event.flags & LLKHF_UP);
     DWORD vk = normalize(event.vkCode, event.scanCode, event.flags);
     if (vk >= 256) return false;
+    double now = seconds();
+    if (pressed) dropLostReleases(vk, now);
+
+    if (s.recorder && GetForegroundWindow() == s.recorder) return record(vk, pressed, now);
 
     if (modifierOf(vk)) {
         bool wasDown = s.down[vk];
         s.down[vk] = pressed;
-        if (wasDown == pressed) return false;  // key repeat of a held modifier changes nothing
-        Modifiers now = heldModifiers();
-        if (now != s.modifiers) modifiersChanged(now);
-        return false;
+        if (pressed) s.lastPress[vk] = now;
+        bool swallow = s.swallowed[vk];
+        if (!pressed) s.swallowed[vk] = false;
+        if (wasDown != pressed) {  // key repeat of a held modifier changes nothing
+            Modifiers held = heldModifiers();
+            if (held != s.modifiers) modifiersChanged(held);
+        }
+        return swallow;
     }
 
     if (!pressed) {
         s.down[vk] = false;
-        if (s.swallowed[vk]) {
-            s.swallowed[vk] = false;
-            return true;
-        }
-        return false;
+        if (!s.swallowed[vk]) return false;
+        s.swallowed[vk] = false;
+        return true;
     }
-    bool repeat = s.down[vk];
+    bool repeat = isRepeat(vk, now);
     s.down[vk] = true;
-    if (s.swallowed[vk]) return true;
+    s.lastPress[vk] = now;
+    if (s.swallowed[vk]) {
+        if (repeat) return true;
+        s.swallowed[vk] = false;  // its release was lost: this is a new press
+    }
     otherInput();
-    if (s.paused) return false;
     for (const Binding& binding : s.combos) {
-        if (binding.hotkey.vk != vk || binding.hotkey.modifiers != s.modifiers) continue;
+        if (s.paused || binding.hotkey.vk != vk || binding.hotkey.modifiers != s.modifiers) continue;
         // Swallow the press, its repeats and its release, even if the modifiers go up first.
         s.swallowed[vk] = true;
         if (!repeat) fire(binding.action, binding.hotkey.modifiers);
         return true;
     }
+    g_lastTyped.store(nowMs(), std::memory_order_relaxed);
     return false;
 }
 
@@ -198,6 +284,12 @@ void resetState(HookState& s) {
     setMouseHook(s, false);
 }
 
+// Ctrl+Alt+Del, a UAC prompt and the lock screen live on another desktop: the hook hears none of the
+// releases made there.
+void CALLBACK desktopSwitched(HWINEVENTHOOK, DWORD, HWND, LONG, LONG, DWORD, DWORD) {
+    if (g_state) resetState(*g_state);
+}
+
 void applyBindings(HookState& s, const std::vector<Binding>& bindings) {
     s.combos.clear();
     s.chords.clear();
@@ -213,15 +305,17 @@ void applyBindings(HookState& s, const std::vector<Binding>& bindings) {
 
 bool installKeyboardHook(HookState& s) {
     s.keyboard = SetWindowsHookExW(WH_KEYBOARD_LL, keyboardProc, GetModuleHandleW(nullptr), 0);
-    if (!s.keyboard) {
-        log::write(L"keyboard hook could not be installed, error " + std::to_wstring(GetLastError()));
-        PostMessageW(s.statusTarget, WM_KLATS_HOOK_FAILED, 0, 0);
-        return false;
-    }
-    return true;
+    return s.keyboard != nullptr;
+}
+
+// The UI thread writes the log: a slow disk here would hold up every key in the system.
+void report(const HookState& s, HookStatus status, DWORD error = 0) {
+    PostMessageW(s.statusTarget, WM_KLATS_HOOK_STATUS, static_cast<WPARAM>(status), static_cast<LPARAM>(error));
 }
 
 }  // namespace
+
+ULONGLONG HookThread::lastTypedAt() { return g_lastTyped.load(std::memory_order_relaxed); }
 
 bool HookThread::start(HWND actionTarget, HWND statusTarget, bool installHook) {
     if (thread_) return true;
@@ -259,6 +353,10 @@ void HookThread::setPaused(bool paused) {
     if (thread_) PostThreadMessageW(threadId_, kPaused, paused ? 1 : 0, 0);
 }
 
+void HookThread::setRecorder(HWND recorder) {
+    if (thread_) PostThreadMessageW(threadId_, kRecorder, 0, reinterpret_cast<LPARAM>(recorder));
+}
+
 void HookThread::reinstall() {
     if (thread_) PostThreadMessageW(threadId_, kReinstall, 0, 0);
 }
@@ -279,7 +377,12 @@ DWORD WINAPI HookThread::threadMain(void* parameter) {
     PeekMessageW(&message, nullptr, 0, 0, PM_NOREMOVE);  // creates the queue before anyone posts to it
     // Like AutoHotkey: even when a busy program runs at high priority, keys must not lag.
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-    if (self->installHook_) self->hookInstalled_ = installKeyboardHook(state);
+    if (self->installHook_) {
+        self->hookInstalled_ = installKeyboardHook(state);
+        if (!self->hookInstalled_) report(state, HookStatus::Failed, GetLastError());
+    }
+    HWINEVENTHOOK desktopHook = SetWinEventHook(EVENT_SYSTEM_DESKTOPSWITCH, EVENT_SYSTEM_DESKTOPSWITCH, nullptr, desktopSwitched,
+                                                0, 0, WINEVENT_OUTOFCONTEXT);
     SetEvent(self->ready_);
 
     while (GetMessageW(&message, nullptr, 0, 0) > 0) {
@@ -292,19 +395,24 @@ DWORD WINAPI HookThread::threadMain(void* parameter) {
         case kPaused:
             state.paused = message.wParam != 0;
             break;
+        case kRecorder:
+            state.recorder = reinterpret_cast<HWND>(message.lParam);
+            // Keys held for the recorder must not complete a hotkey once it lets go.
+            restartChords();
+            break;
         case kReset:
             resetState(state);
             break;
-        case kReinstall:
+        case kReinstall: {
             if (!self->installHook_) break;
-            if (state.keyboard && !UnhookWindowsHookEx(state.keyboard) && GetLastError() == ERROR_INVALID_HOOK_HANDLE) {
-                log::write(L"Windows had removed the keyboard hook");
-            }
+            bool removed = state.keyboard && !UnhookWindowsHookEx(state.keyboard) && GetLastError() == ERROR_INVALID_HOOK_HANDLE;
             state.keyboard = nullptr;
             resetState(state);
             self->hookInstalled_ = installKeyboardHook(state);
-            log::write(self->hookInstalled_ ? L"keyboard hook reinstalled" : L"keyboard hook could not be reinstalled");
+            if (!self->hookInstalled_) report(state, HookStatus::Failed, GetLastError());
+            else report(state, removed ? HookStatus::ReinstalledAfterRemoval : HookStatus::Reinstalled);
             break;
+        }
         case kMouseHook:
             setMouseHook(state, message.wParam != 0);
             break;
@@ -313,6 +421,7 @@ DWORD WINAPI HookThread::threadMain(void* parameter) {
         }
     }
 
+    if (desktopHook) UnhookWinEvent(desktopHook);
     setMouseHook(state, false);
     if (state.keyboard) UnhookWindowsHookEx(state.keyboard);
     g_state = nullptr;

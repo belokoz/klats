@@ -1,8 +1,12 @@
 #pragma once
+#include "clipboard.h"
 #include "common.h"
 #include "settings_store.h"
 
 #include <windows.h>
+
+#include <optional>
+#include <string>
 
 namespace klats::app {
 
@@ -28,8 +32,21 @@ public:
     void request(Action action, bool fromMenu);
 
 private:
+    // The user's clipboard, kept after a program left the copy keys unanswered: a busy program may
+    // still copy a moment later and replace it.
+    struct LateCopy {
+        ClipboardSnapshot snapshot;
+        DWORD sequenceBefore = 0;
+        DWORD process = 0;
+        std::wstring exe;
+        ULONGLONG sentAt = 0;  // nowMs() when the copy keys went out
+    };
+
     static DWORD WINAPI threadMain(void* self);
+    static LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
     void run(Action action, bool fromMenu, DWORD postedAt);
+    void watchLateCopy(LateCopy late);
+    void settleLateCopy();
 
     SettingsStore& settings_;
     HANDLE thread_ = nullptr;
@@ -37,6 +54,7 @@ private:
     HANDLE cancel_ = nullptr;
     HWND window_ = nullptr;
     DWORD lastRunEnd_ = 0;
+    std::optional<LateCopy> lateCopy_;
 };
 
 }  // namespace klats::app

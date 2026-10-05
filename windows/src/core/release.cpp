@@ -57,13 +57,18 @@ struct Candidate {
     std::wstring url;
 };
 
-std::optional<Candidate> readEntry(std::string_view entry, std::string_view repositoryID, std::string_view arch) {
+// The tag of an entry, when the entry belongs to this repository.
+std::optional<std::string_view> entryTag(std::string_view entry, std::string_view repositoryID) {
     auto id = between(entry, "<id>", "</id>");
     if (!id) return std::nullopt;
     std::string prefix = "tag:github.com,2008:Repository/" + std::string(repositoryID) + "/";
     if (id->substr(0, prefix.size()) != prefix) return std::nullopt;
     std::string_view tag = id->substr(prefix.size());
+    if (tag.empty()) return std::nullopt;
+    return tag;
+}
 
+std::optional<Candidate> readEntry(std::string_view entry, std::string_view tag, std::string_view arch) {
     constexpr std::string_view tagPrefix = "windows-v";
     if (tag.substr(0, tagPrefix.size()) != tagPrefix) return std::nullopt;
     std::string_view number = tag.substr(tagPrefix.size());
@@ -140,10 +145,10 @@ std::strong_ordering operator<=>(const AppVersion& a, const AppVersion& b) {
     return std::strong_ordering::equal;
 }
 
-std::optional<WindowsRelease> newestWindowsRelease(std::string_view atom, std::string_view repositoryID,
-                                                   std::string_view arch) {
+std::optional<FeedPage> readReleaseFeed(std::string_view atom, std::string_view repositoryID, std::string_view arch) {
     constexpr size_t maxFeed = 1 << 20;
     if (atom.size() > maxFeed || repositoryID.empty() || arch.empty()) return std::nullopt;
+    if (atom.find("<feed") == std::string_view::npos) return std::nullopt;
     for (char c : repositoryID) {
         if (c < '0' || c > '9') return std::nullopt;
     }
@@ -151,16 +156,34 @@ std::optional<WindowsRelease> newestWindowsRelease(std::string_view atom, std::s
         if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))) return std::nullopt;
     }
 
-    std::optional<Candidate> newest;
+    FeedPage page;
+    std::vector<Candidate> candidates;
     for (size_t start = atom.find("<entry>"); start != std::string_view::npos; start = atom.find("<entry>", start)) {
         size_t end = atom.find("</entry>", start);
         if (end == std::string_view::npos) break;
-        auto candidate = readEntry(atom.substr(start, end - start), repositoryID, arch);
-        if (candidate && (!newest || newest->version < candidate->version)) newest = std::move(candidate);
+        std::string_view entry = atom.substr(start, end - start);
+        ++page.entries;
+        if (auto tag = entryTag(entry, repositoryID)) {
+            if (page.firstTag.empty()) page.firstTag = std::string(*tag);
+            page.lastTag = std::string(*tag);
+            if (auto candidate = readEntry(entry, *tag, arch)) candidates.push_back(std::move(*candidate));
+        }
         start = end;
     }
-    if (!newest) return std::nullopt;
-    return WindowsRelease{std::move(newest->version), std::move(newest->url)};
+    std::stable_sort(candidates.begin(), candidates.end(),
+                     [](const Candidate& a, const Candidate& b) { return b.version < a.version; });
+    for (auto& candidate : candidates) {
+        if (!page.releases.empty() && page.releases.back().version == candidate.version) continue;
+        page.releases.push_back({std::move(candidate.version), std::move(candidate.url)});
+    }
+    return page;
+}
+
+std::optional<WindowsRelease> newestWindowsRelease(std::string_view atom, std::string_view repositoryID,
+                                                   std::string_view arch) {
+    auto page = readReleaseFeed(atom, repositoryID, arch);
+    if (!page || page->releases.empty()) return std::nullopt;
+    return page->releases.front();
 }
 
 bool isGitHubLink(std::wstring_view url) {
