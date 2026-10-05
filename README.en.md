@@ -101,7 +101,7 @@ Details live in the [concept](docs/CONCEPT.md) and [design](docs/DESIGN.md) of t
 
 ## How it was made
 
-Klats was written in a dialogue with Claude Code: the Mac version in three days, the Windows version in two. The author set the tasks, reviewed the artifacts and corrected course; Claude wrote the code and the documents. Concept, design, tested core, app, release, each stage reviewed. The story of the Mac version with dates, forks and numbers: [docs/HISTORY.md](docs/HISTORY.md) (Russian).
+Klats was written in a dialogue with Claude Code: the Mac version in three days, the Windows version in two hours. The author set the tasks, reviewed the artifacts and corrected course; Claude wrote the code and the documents. Concept, design, tested core, app, release, each stage reviewed. The story of the Mac version with dates, forks and numbers: [docs/HISTORY.md](docs/HISTORY.md) (Russian).
 
 ## From the author
 
