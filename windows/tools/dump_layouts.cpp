@@ -5,6 +5,7 @@
 // are installed here, the result is cross-checked against ToUnicodeEx, which the app itself uses.
 //
 //   dump_layouts.exe <output header>
+#include "app/input_sources.h"
 #include "core/layout_table.h"
 #include "core/unicode.h"
 
@@ -129,26 +130,6 @@ std::vector<LayoutTable::Row> rowsFromFile(const wchar_t* file) {
     return rows;
 }
 
-// The app's own way: MapVirtualKeyEx and ToUnicodeEx with flag 4, which leaves the shared keyboard
-// state (pending dead keys) alone.
-std::vector<LayoutTable::Row> rowsFromToUnicodeEx(HKL layout) {
-    std::vector<LayoutTable::Row> rows;
-    BYTE state[256] = {};
-    for (uint16_t sc : scanCodes()) {
-        UINT vk = MapVirtualKeyExW(sc, MAPVK_VSC_TO_VK_EX, layout);
-        if (!vk) continue;
-        for (bool shift : {false, true}) {
-            state[VK_SHIFT] = state[VK_LSHIFT] = shift ? 0x80 : 0;
-            wchar_t buffer[16];
-            int length = ToUnicodeEx(vk, sc, state, buffer, 16, 0x4, layout);
-            if (length <= 0) continue;
-            std::wstring text(buffer, static_cast<size_t>(length));
-            if (usable(text)) rows.push_back({{sc, shift}, text});
-        }
-    }
-    return rows;
-}
-
 std::optional<HKL> installedLayout(const wchar_t* id) {
     // Only plain KLIDs (0000xxxx) map straight to an HKL; that covers what this check needs.
     std::wstring klid = std::wstring(id).substr(5);
@@ -215,7 +196,8 @@ int wmain(int argc, wchar_t** argv) {
         }
         if (auto layout = installedLayout(source.id)) {
             std::map<KeyStroke, std::wstring> fromFile(rows.begin(), rows.end());
-            auto viaApi = rowsFromToUnicodeEx(*layout);
+            // The app's own reader: MapVirtualKeyEx and ToUnicodeEx.
+            auto viaApi = klats::app::layoutRows(*layout);
             std::map<KeyStroke, std::wstring> fromApi(viaApi.begin(), viaApi.end());
             bool same = fromFile == fromApi;
             std::printf("%s: %zu keys, ToUnicodeEx %s\n", source.name, rows.size(), same ? "agrees" : "DIFFERS");

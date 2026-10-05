@@ -1,0 +1,37 @@
+// Without this pragma rc.exe reads the file in the ANSI code page and silently garbles «Клац».
+#pragma code_page(65001)
+#include <winres.h>
+#include "version.h"
+
+// Resource 1 is the app icon: the exe, the Start menu shortcut, the windows and dialogs.
+1 ICON "klats.ico"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION KLATS_VERSION_MAJOR, KLATS_VERSION_MINOR, KLATS_VERSION_PATCH, 0
+PRODUCTVERSION KLATS_VERSION_MAJOR, KLATS_VERSION_MINOR, KLATS_VERSION_PATCH, 0
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS 0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041904B0"
+        BEGIN
+            VALUE "CompanyName", "belokoz"
+            // Task Manager and the installer show this name.
+            VALUE "FileDescription", "Клац"
+            VALUE "FileVersion", KLATS_VERSION_STRING
+            VALUE "InternalName", "Klats"
+            VALUE "LegalCopyright", "MIT License"
+            VALUE "OriginalFilename", "Klats.exe"
+            VALUE "ProductName", "Клац"
+            VALUE "ProductVersion", KLATS_VERSION_STRING
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x419, 1200
+    END
+END
