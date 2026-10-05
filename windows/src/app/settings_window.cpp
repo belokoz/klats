@@ -3,6 +3,7 @@
 #include "common.h"
 #include "hook_thread.h"
 #include "hotkey_display.h"
+#include "links.h"
 #include "log.h"
 #include "login_item.h"
 #include "strings.h"
@@ -11,7 +12,6 @@
 #include "../../res/resource.h"
 
 #include <commctrl.h>
-#include <shellapi.h>
 
 #include <array>
 
@@ -356,10 +356,11 @@ INT_PTR SettingsWindow::handle(UINT message, WPARAM wParam, LPARAM lParam) {
         }
 
     case WM_NOTIFY: {
+        if (drawPlainLink(window_, lParam)) return FALSE;  // the link draws itself, with the plain font set
         auto* header = reinterpret_cast<const NMHDR*>(lParam);
         if ((header->code == NM_CLICK || header->code == NM_RETURN) &&
             (header->idFrom == IDC_FOOTER_REPO || header->idFrom == IDC_FOOTER_DIKTUY)) {
-            ShellExecuteW(nullptr, L"open", header->idFrom == IDC_FOOTER_REPO ? kRepositoryLink : kDiktuyLink, nullptr, nullptr, SW_SHOWNORMAL);
+            openLink(header->idFrom == IDC_FOOTER_REPO ? kRepositoryLink : kDiktuyLink);
             return TRUE;
         }
         return FALSE;

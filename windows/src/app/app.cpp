@@ -1,5 +1,6 @@
 #include "app.h"
 
+#include "about_window.h"
 #include "common.h"
 #include "foreground.h"
 #include "hook_thread.h"
@@ -110,13 +111,6 @@ bool isShellWindow(HWND window) {
            name == L"TopLevelWindowForOverflowXamlIsland";
 }
 
-HRESULT CALLBACK aboutCallback(HWND, UINT notification, WPARAM, LPARAM lParam, LONG_PTR) {
-    if (notification == TDN_HYPERLINK_CLICKED) {
-        ShellExecuteW(nullptr, L"open", reinterpret_cast<const wchar_t*>(lParam), nullptr, nullptr, SW_SHOWNORMAL);
-    }
-    return S_OK;
-}
-
 // The tray window of a Klats that is already running. The mutex alone proves nothing: any program
 // in the session may create that name first, or hold it open after Klats exits. A Klats started a
 // moment earlier may not have its window yet, so the search waits a little.
@@ -154,7 +148,6 @@ private:
     void command(UINT id, HWND target);
     void setPaused(bool paused);
     void refreshIcon();
-    void showAbout();
     void showDebugWindows();
     AppVersion currentVersion() const;
     void shutdown();
@@ -352,7 +345,7 @@ void App::command(UINT id, HWND target) {
         settingsWindow_.show();
         break;
     case kMenuAbout:
-        showAbout();
+        showAbout(instance_);
         break;
     case kMenuLog:
         ShellExecuteW(nullptr, L"open", log::filePath().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
@@ -365,25 +358,6 @@ void App::command(UINT id, HWND target) {
     }
 }
 
-void App::showAbout() {
-    std::wstring content = std::wstring(tr(L"Версия")) + L" " KLATS_VERSION_WSTRING L"\n" +
-                           tr(L"Исправляет раскладку выделенного текста одним нажатием.") + L"\n\n<a href=\"" + kRepository +
-                           L"\">github.com/belokoz/klats</a>\n<a href=\"https://diktuy.ru/?utm_source=klats&utm_medium=app&utm_campaign=about\">" +
-                           tr(L"Диктуй: голос в текст") + L"</a>\n\nMIT License";
-    TASKDIALOGCONFIG config{};
-    config.cbSize = sizeof config;
-    config.hInstance = instance_;
-    config.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
-    config.pszWindowTitle = tr(L"О программе");
-    config.pszMainIcon = MAKEINTRESOURCEW(1);
-    config.pszMainInstruction = tr(L"Клац");
-    config.pszContent = content.c_str();
-    config.dwCommonButtons = TDCBF_OK_BUTTON;
-    config.pfCallback = aboutCallback;
-    SetForegroundWindow(owner_);
-    TaskDialogIndirect(&config, nullptr, nullptr, nullptr);
-}
-
 // `--debug-show settings,onboarding,about,menu,update` opens windows straight away, for screenshots.
 void App::showDebugWindows() {
     for (const std::wstring& name : options_.debugShow) {
@@ -392,7 +366,7 @@ void App::showDebugWindows() {
         } else if (name == L"onboarding") {
             onboarding_.show();
         } else if (name == L"about") {
-            showAbout();
+            showAbout(instance_);
         } else if (name == L"menu") {
             showMenu(trayAnchor(), false);
         } else if (name == L"update") {

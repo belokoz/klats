@@ -31,6 +31,7 @@ const Translation kEnglish[] = {
     {L"Исправляет раскладку выделенного текста одним нажатием.", L"Fixes the layout of selected text with one press."},
     {L"Версия", L"Version"},
     {L"Диктуй: голос в текст", L"Diktuy: voice to text"},
+    {L"ОК", L"OK"},
     // Settings
     {L"Параметры Клаца", L"Klats settings"},
     {L"Сочетания клавиш", L"Keyboard shortcuts"},
@@ -74,7 +75,6 @@ const Translation kEnglish[] = {
      L"панель задач: так он всегда будет под рукой.",
      L"The Klats icon is in the notification area, next to the clock. If you cannot see it, click the ^ arrow and drag the "
      L"icon onto the taskbar: that way it is always at hand."},
-    {L"Параметры панели задач", L"Taskbar settings"},
     {L"Запускать Клац при входе в Windows", L"Launch Klats when you sign in to Windows"},
     {L"В окнах программ, запущенных от имени администратора, Клац не работает: так Windows их защищает.",
      L"Klats does not work in windows of programs run as administrator: that is how Windows protects them."},

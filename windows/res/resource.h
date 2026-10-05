@@ -6,6 +6,13 @@
 
 #define IDD_SETTINGS 100
 #define IDD_ONBOARDING 101
+#define IDD_ABOUT 102
+
+// SysLink style: the control asks its parent before drawing each piece of text (commctrl.h has it,
+// the resource compiler does not see it).
+#ifndef LWS_USECUSTOMTEXT
+#define LWS_USECUSTOMTEXT 0x0010
+#endif
 
 // Settings
 #define IDC_HOTKEYS_HEADER 1000
@@ -46,6 +53,14 @@
 #define IDC_OB_TRY_RESULT 1106
 #define IDC_OB_WHERE_HEADER 1107
 #define IDC_OB_WHERE_TEXT 1108
-#define IDC_OB_TASKBAR 1109
 #define IDC_OB_AUTOSTART 1110
 #define IDC_OB_ADMIN_NOTE 1111
+
+// About
+#define IDC_ABOUT_ICON 1200
+#define IDC_ABOUT_TITLE 1201
+#define IDC_ABOUT_VERSION 1202
+#define IDC_ABOUT_DESCRIPTION 1203
+#define IDC_ABOUT_REPO 1204
+#define IDC_ABOUT_DIKTUY 1205
+#define IDC_ABOUT_LICENSE 1206

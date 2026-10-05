@@ -7,8 +7,6 @@
 
 #include "../../res/resource.h"
 
-#include <shellapi.h>
-
 #include <string>
 
 namespace klats::app {
@@ -76,7 +74,6 @@ void OnboardingWindow::initialize() {
     setText(dialog, IDC_OB_WHERE_TEXT,
             tr(L"Значок Клаца — в области уведомлений, рядом с часами. Если его не видно, нажмите стрелку ^ и перетащите "
                L"значок на панель задач: так он всегда будет под рукой."));
-    setText(dialog, IDC_OB_TASKBAR, tr(L"Параметры панели задач"));
     setText(dialog, IDC_OB_AUTOSTART, tr(L"Запускать Клац при входе в Windows"));
     setText(dialog, IDC_OB_ADMIN_NOTE, tr(L"В окнах программ, запущенных от имени администратора, Клац не работает: так Windows их защищает."));
     setText(dialog, IDOK, tr(L"Готово"));
@@ -104,9 +101,6 @@ INT_PTR OnboardingWindow::handle(UINT message, WPARAM wParam, LPARAM) {
         return FALSE;  // the focus was set by hand, on the probe field
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
-        case IDC_OB_TASKBAR:
-            ShellExecuteW(nullptr, L"open", L"ms-settings:taskbar", nullptr, nullptr, SW_SHOWNORMAL);
-            return TRUE;
         case IDOK:
         case IDCANCEL:
             finish();

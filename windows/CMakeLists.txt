@@ -41,12 +41,14 @@ add_library(klats_layouts STATIC src/app/common.cpp src/app/input_sources.cpp)
 target_link_libraries(klats_layouts PUBLIC klats_core advapi32 user32)
 
 add_executable(Klats WIN32
+    src/app/about_window.cpp
     src/app/app.cpp
     src/app/clipboard.cpp
     src/app/foreground.cpp
     src/app/hook_thread.cpp
     src/app/hotkey_display.cpp
     src/app/hotkey_recorder.cpp
+    src/app/links.cpp
     src/app/log.cpp
     src/app/login_item.cpp
     src/app/main.cpp
