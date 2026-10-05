@@ -1,15 +1,14 @@
 # Klats for Windows, built on GitHub's machine (free of charge: the repository is public).
 #
-# Every push to the windows branch: build, core tests, installer as an artifact of the run.
+# Every push to main that touches windows/: build, core tests, installer as an artifact of the run.
 # Actions tab → "Klats for Windows" → Run workflow: the same, then the release windows-vX.Y.Z with
-# the installer, never marked latest. A suffix (beta1) makes a test pre-release instead. GitHub
-# offers the button only once this file is on the default branch; until then:
-#   gh workflow run windows.yml --ref windows -f suffix=beta1
+# the installer, never marked latest, and the README links moved to it. A suffix (beta1) makes a
+# test pre-release instead and leaves the README alone.
 name: Klats for Windows
 
 on:
   push:
-    branches: [windows]
+    branches: [main]
     paths:
       - 'windows/**'
       - '.github/workflows/windows.yml'
@@ -66,3 +65,20 @@ jobs:
           $latest = gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" --jq .tag_name
           if ($latest -like 'windows-*') { throw "GitHub calls $latest the latest release now: mark the Mac release as latest again" }
           Write-Host "published $tag; the latest release is still $latest"
+          # «Скачать для Windows» in both READMEs leads to the newest release.
+          if (-not $suffix -and $env:GITHUB_REF -eq 'refs/heads/main') {
+            foreach ($file in 'README.md', 'README.en.md') {
+              $text = [IO.File]::ReadAllText($file)
+              $text = $text -replace 'windows-v\d+\.\d+\.\d+', "windows-v$version" -replace 'Klats-\d+\.\d+\.\d+-windows-x64\.exe', "Klats-$version-windows-x64.exe"
+              [IO.File]::WriteAllText($file, $text)
+            }
+            git diff --quiet
+            if ($LASTEXITCODE -ne 0) {
+              git config user.name 'github-actions[bot]'
+              git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+              git commit -am "README: ссылки на Клац $version для Windows"
+              git pull --rebase origin main
+              git push origin HEAD:main
+              if ($LASTEXITCODE -ne 0) { throw 'the README links could not be pushed: move them to the new version by hand' }
+            }
+          }

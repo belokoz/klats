@@ -172,7 +172,7 @@ cd windows
 
 Номер версии — один, в `windows/CMakeLists.txt` (`project(Klats VERSION X.Y.Z)`): из него берут exe, установщик и тег.
 
-На GitHub (`.github/workflows/windows.yml`, машина `windows-2022` с тем же набором инструментов, бесплатно для публичного репозитория): каждый пуш в ветку `windows` собирает, гоняет тесты ядра и кладёт установщик в артефакты запуска. Выпуск — Actions → «Klats for Windows» → Run workflow: та же сборка и релиз `windows-vX.Y.Z` с `--latest=false`, затем проверка, что «последним» остался мак-релиз. Суффикс (`beta1`) делает пробный pre-release. Кнопку GitHub показывает, только когда файл workflow есть в основной ветке; до тех пор — `gh workflow run windows.yml --ref windows -f suffix=beta1`.
+На GitHub (`.github/workflows/windows.yml`, машина `windows-2022` с тем же набором инструментов, бесплатно для публичного репозитория): каждый пуш в `main`, который трогает `windows/`, собирает, гоняет тесты ядра и кладёт установщик в артефакты запуска. Выпуск — Actions → «Klats for Windows» → Run workflow: та же сборка, релиз `windows-vX.Y.Z` с `--latest=false`, проверка, что «последним» остался мак-релиз, и ссылки «Скачать для Windows» в `README.md` и `README.en.md` переходят на новую версию. Суффикс (`beta1`) делает пробный pre-release и README не трогает.
 
 - C++20, `/W4 /permissive- /utf-8`, статическая CRT (`/MT`), `/guard:cf`, `/CETCOMPAT`, `/DEPENDENTLOADFLAG:0x800`. Manifest: Per-Monitor v2, Common Controls 6, `asInvoker`.
 - `.rc` начинается с `#pragma code_page(65001)`, иначе кириллица в ресурсах молча портится. Исходники в UTF-8 без BOM. Шаблоны окон — в `res/dialogs.rc2`, без текстов: тексты ставит код из `strings.cpp`.
