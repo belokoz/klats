@@ -99,6 +99,16 @@ kbd {
 }
 code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .92em; }
 
+/* Тексты по системе гостя: data-for="mac" | "win" | "any", можно несколько через пробел.
+   Пока система неизвестна, видны варианты с "any". Вариантам без "any" нужен атрибут hidden:
+   тогда их не покажет и читалка, которая не смотрит в стили. */
+[data-for][hidden],   /* у kbd своё display, и одного атрибута hidden ему мало */
+html[data-os="mac"] [data-for]:not([data-for~="mac"]),
+html[data-os="win"] [data-for]:not([data-for~="win"]) { display: none; }
+html[data-os="mac"] [data-for~="mac"][hidden],
+html[data-os="win"] [data-for~="win"][hidden] { display: inline; }
+html[data-os="win"] kbd[data-for~="win"][hidden] { display: inline-block; }
+
 /* Шапка */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; font-size: 18px; }
@@ -154,6 +164,8 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
 .cap small { font-size: 11px; color: var(--ink-2); margin-top: 2px; }
 .cap.down, .cap-btn.down .cap { transform: translateY(3px); box-shadow: none; }
 .cap-btn.case .cap { width: auto; height: 40px; padding-inline: 12px; font-size: 18px; border-radius: var(--r-m); }
+html[data-os="win"] .cap { font-size: 17px; font-weight: 600; }   /* на клавишах слова Win и Alt, а не значки */
+html[data-os="win"] .cap-btn.case .cap { font-size: 15px; }
 .status { min-height: 1.5em; font-size: 15px; color: var(--ink-2); }
 .status.ok { color: var(--ink); }
 .demo-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
@@ -184,6 +196,10 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
   padding: 15px 22px; border-radius: var(--r-m);
 }
 .btn:hover { opacity: .92; }
+/* Кнопка своей системы первая и тёмная, чужая рядом и легче. Пока система неизвестна, обе тёмные. */
+html[data-os="win"] .intro .btn[data-exe] { order: -1; }
+html[data-os="mac"] .intro .btn[data-exe],
+html[data-os="win"] .intro .btn[data-dmg] { background: none; color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink-3); }
 @media (max-width: 500px) { .intro .btn { min-width: 15em; } }   /* столбиком: обе кнопки одной ширины */
 .trust { margin-top: 14px; font-size: 14px; color: var(--ink-2); }
 .nw { white-space: nowrap; }
@@ -309,6 +325,7 @@ footer { border-top: 1px solid var(--line); padding-top: 28px; margin-top: 16px;
 footer nav { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 footer .fine { font-size: 13px; color: var(--ink-2); }
 
+@media (forced-colors: active) { .btn { border: 1px solid; } }   /* высокая контрастность Windows убирает фон и тень */
 @media print {
   .demo, .btn-text, .copy, .kb-tool, .kb-hint { display: none; }
   .shot { background: none; padding: 0; }
@@ -322,6 +339,17 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
   .step { color: var(--ink); }
 }
 </style>
+<script>
+// Система гостя на <html data-os> до первой отрисовки: от неё зависят заголовок, кнопки и клавиши первого экрана.
+// На телефоне, планшете и без скрипта атрибута нет, и страница говорит про обе версии.
+// Та же проверка стоит в начале нижнего скрипта. Посмотреть чужими глазами: ?os=win, ?os=mac, ?os=other.
+(function () {
+  var forced = (/[?&]os=(mac|win|other)\b/.exec(location.search) || [])[1];
+  var platform = forced || (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+  var os = /^win/i.test(platform) ? 'win' : /mac/i.test(platform) && (forced || !(navigator.maxTouchPoints > 1)) ? 'mac' : '';
+  if (os) document.documentElement.setAttribute('data-os', os);
+})();
+</script>
 </head>
 <body>
 <div class="page">
@@ -337,19 +365,23 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
 <main>
 <section class="hero wrap-wide" id="try">
   <div class="intro">
-      <h1>Выделил текст, отпустил ⌥⌘, раскладка сменилась.</h1>
-      <p class="lead">Клац живёт в строке меню macOS или рядом с часами в Windows и умеет одно: переводит выделенный текст в другую раскладку и переключает её в системе. Бонусом ⌥⌘Z меняет регистр. На Windows это Win+Alt и Win+Alt+Z. Без автозамен и словарей, ваш текст Клац никуда не отправляет.</p>
+      <h1>Выделил текст, отпустил <span data-for="mac any">⌥⌘</span><span class="nw" data-for="win" hidden>Win+Alt</span>, раскладка сменилась.</h1>
+      <p class="lead">Клац живёт <span data-for="mac" hidden>в строке меню macOS</span><span data-for="win" hidden>рядом с часами в Windows</span><span data-for="any">в строке меню macOS или рядом с часами в Windows</span> и умеет одно: переводит выделенный текст в другую раскладку и переключает её в системе. Бонусом <span data-for="mac any">⌥⌘Z</span><span class="nw" data-for="win" hidden>Win+Alt+Z</span> меняет регистр. <span data-for="any">На Windows это Win+Alt и Win+Alt+Z. </span>Без автозамен и словарей, ваш текст Клац никуда не отправляет.</p>
       <div class="cta">
         <a class="btn" href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Скачать для macOS</a>
         <a class="btn" href="https://github.com/belokoz/klats/releases/download/windows-v0.1.0/Klats-0.1.0-windows-x64.exe" data-exe>Скачать для Windows</a>
       </div>
-      <p class="trust">Бесплатно, MIT · macOS&nbsp;12+, Apple Silicon <span class="nw">и Intel · 1,0 МБ</span><br>Windows&nbsp;10 версии&nbsp;1903 и&nbsp;новее или Windows&nbsp;11, <span class="nw">64-бит · 2,1 МБ</span> · <a href="#windows">что покажет Windows при&nbsp;установке</a></p>
+      <p class="trust">
+        <span data-for="mac" hidden>Klats-0.2.0.dmg, 1,0 МБ · macOS 12+, Apple Silicon и Intel · бесплатно, MIT</span>
+        <span data-for="win" hidden>Windows&nbsp;10 версии&nbsp;1903 и&nbsp;новее или Windows&nbsp;11, <span class="nw">64-бит · 2,1 МБ</span> · бесплатно, MIT<br><a href="#windows">Что покажет Windows при&nbsp;установке</a></span>
+        <span data-for="any">Бесплатно, MIT · macOS&nbsp;12+, Apple Silicon <span class="nw">и Intel · 1,0 МБ</span><br>Windows&nbsp;10 версии&nbsp;1903 и&nbsp;новее или Windows&nbsp;11, <span class="nw">64-бит · 2,1 МБ</span> · <a href="#windows">что покажет Windows при&nbsp;установке</a></span>
+      </p>
   </div>
 
   <div class="demo" id="demo">
     <div class="demo-top">
-      <span id="demo-hint">Попробуйте прямо здесь</span>
-      <span class="pill" id="demo-layout">Раскладка системы: <b>ABC</b></span>
+      <span id="demo-hint">Попробуйте прямо здесь<span data-for="win" hidden>, кнопкой Win+Alt. На клавиатуре сочетание заработает, когда поставите Клац.</span></span>
+      <span class="pill" id="demo-layout">Раскладка системы: <b><span data-for="mac any">ABC</span><span data-for="win" hidden>США</span></b></span>
     </div>
     <div class="row-field">
       <div class="field">
@@ -357,7 +389,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
         <div class="overlay" id="demo-overlay" aria-hidden="true"></div>
       </div>
       <button class="cap-btn" id="cap-btn" type="button" aria-label="Сменить раскладку выделенного: нажмите и отпустите">
-        <span class="cap" id="cap-alt">⌥</span><span class="cap" id="cap-cmd">⌘</span>
+        <span class="cap" id="cap-alt"><span data-for="mac any">⌥</span><span data-for="win" hidden>Win</span></span><span class="cap" id="cap-cmd"><span data-for="mac any">⌘</span><span data-for="win" hidden>Alt</span></span>
       </button>
     </div>
     <p class="status" id="demo-status" aria-live="polite"></p>
@@ -366,7 +398,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
       <button class="chip" type="button" data-text="руддщ цщкдв">руддщ цщкдв</button>
       <button class="chip" type="button" data-text="пРИВЕТ, МИР" data-case>пРИВЕТ, МИР<span class="note">регистр</span></button>
       <span class="sp"></span>
-      <button class="cap-btn case" id="case-btn" type="button" title="Сменить регистр выделенного" aria-label="Сменить регистр выделенного: нажмите и отпустите"><span class="cap">⌥⌘Z</span></button>
+      <button class="cap-btn case" id="case-btn" type="button" title="Сменить регистр выделенного" aria-label="Сменить регистр выделенного: нажмите и отпустите"><span class="cap"><span data-for="mac any">⌥⌘Z</span><span data-for="win" hidden>Win+Alt+Z</span></span></button>
     </div>
   </div>
 </section>
@@ -374,15 +406,15 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
 <section id="press" class="wrap-wide">
   <div class="wrap-text">
     <h2>Одно нажатие</h2>
-    <p class="lead">Клац не следит за тем, что вы печатаете. Он просыпается, когда вы отпускаете ⌥⌘, и делает то, что вы сделали бы руками, только за 0,4 секунды.</p>
+    <p class="lead">Клац не следит за тем, что вы печатаете. Он просыпается, когда вы отпускаете <span data-for="mac any">⌥⌘</span><span class="nw" data-for="win" hidden>Win+Alt</span>, и делает то, что вы сделали бы руками, только <span data-for="mac any">за 0,4 секунды</span><span data-for="win" hidden>быстрее</span>.</p>
   </div>
   <div class="story" id="story">
     <ol class="steps" id="steps">
-      <li class="step"><span class="n">1</span><div><b><kbd>⌘C</kbd>Копирует выделенное.</b><span class="t">Перед этим запоминает, что лежало в буфере обмена.</span></div></li>
+      <li class="step"><span class="n">1</span><div><b><kbd data-for="mac any">⌘C</kbd><kbd data-for="win" hidden>Ctrl+Insert</kbd>Копирует выделенное.</b><span class="t"><span data-for="win" hidden>То же, что Ctrl+C. </span>Перед этим запоминает, что лежало в буфере обмена.</span></div></li>
       <li class="step"><span class="n">2</span><div><b>Перепечатывает.</b><span class="t">Каждую букву той же клавишей в другой раскладке.</span></div></li>
-      <li class="step"><span class="n">3</span><div><b><kbd>⌘V</kbd>Вставляет обратно.</b><span class="t">Обычная вставка: работает везде, где работает ⌘V.</span></div></li>
+      <li class="step"><span class="n">3</span><div><b><kbd data-for="mac any">⌘V</kbd><kbd data-for="win" hidden>Shift+Insert</kbd>Вставляет обратно.</b><span class="t"><span data-for="mac any">Обычная вставка: работает везде, где работает ⌘V.</span><span data-for="win" hidden>Обычная вставка: то же, что Ctrl+V.</span></span></div></li>
       <li class="step"><span class="n">4</span><div><b>Переключает раскладку системы.</b><span class="t">На язык результата, чтобы дальше вы печатали уже правильно.</span></div></li>
-      <li class="step"><span class="n">5</span><div><b>Возвращает буфер обмена.</b><span class="t">Через 0,3 с. Что в нём лежало, там и лежит.</span></div></li>
+      <li class="step"><span class="n">5</span><div><b>Возвращает буфер обмена.</b><span class="t"><span data-for="mac any">Через 0,3 с. Что в нём лежало, там и лежит.</span><span data-for="win" hidden>Через 0,3–2 с, смотря в какой программе.</span></span></div></li>
     </ol>
     <div class="stage" aria-hidden="true">
       <div class="st-row"><span class="st-label">Текст</span><span class="st-val sel" id="st-text">ghbdtn</span></div>
@@ -391,7 +423,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
     </div>
   </div>
   <button class="btn-text" id="story-again" type="button">Ещё раз</button>
-  <p class="story-after">Поэтому Клац работает везде, где работают ⌘C и ⌘V, и не работает там, где они не работают. Ваш текст Клац никуда не отправляет: в сеть он выходит только раз при запуске, чтобы узнать номер последней версии.</p>
+  <p class="story-after">Поэтому Клац работает везде, где работают <span data-for="mac any">⌘C и ⌘V</span><span data-for="win" hidden>копирование и вставка</span>, и не работает там, где они не работают. Ваш текст Клац никуда не отправляет: в сеть он выходит только раз при запуске, чтобы узнать номер последней версии.</p>
 </section>
 
 <section id="keys" class="wrap-wide">
@@ -428,19 +460,19 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
       <div class="num"><b>≈10 МБ</b><span>памяти в покое</span></div>
       <div class="num"><b>0 %</b><span>процессора в покое</span></div>
       <div class="num"><b>0</b><span>зависимостей</span></div>
-      <p class="nums-note">Замеры сделаны на Mac.</p>
+      <p class="nums-note" data-for="win any">Замеры сделаны на Mac.</p>
     </div>
   </div>
-  <p class="outside">Клац не отправляет ваш текст никуда. В сеть он выходит один раз при запуске: спрашивает у GitHub номер последней версии и, если вышла новая, предлагает её скачать. Это выключается в настройках. Журнал работы хранит только приложение, время, длины и исход, текста там нет никогда. Исходники открыты, проверьте сами.</p>
-  <figure class="shot">
+  <p class="outside">Клац не отправляет ваш текст никуда. В сеть он выходит один раз при запуске: спрашивает у GitHub номер последней версии и, если вышла новая, предлагает её скачать. Это выключается в <span data-for="mac any">настройках</span><span data-for="win" hidden>параметрах</span>. Журнал работы хранит только приложение, время, длины и исход, текста там нет никогда. Исходники открыты, проверьте сами.</p>
+  <figure class="shot" data-for="mac any">
     <img src="assets/settings-2.png" width="480" height="726" loading="lazy" decoding="async" alt="Окно настроек Клаца: два сочетания клавиш, пара раскладок и переключатель «Переключать раскладку после конвертации», режим регистра, автозапуск, проверка обновлений и состояние разрешения">
     <figcaption>Это все настройки. Целиком.</figcaption>
   </figure>
 </section>
 
 <section id="install" class="wrap">
-  <h2>Ставится за минуту</h2>
-  <p class="small">Это шаги для Mac. Для Windows они в разделе <a href="#windows">«Клац для Windows»</a>.</p>
+  <h2><span data-for="mac any">Ставится за минуту</span><span data-for="win" hidden>Установка на Mac</span></h2>
+  <p class="small" data-for="any">Это шаги для Mac. Для Windows они в разделе <a href="#windows">«Клац для Windows»</a>.</p>
   <ol class="how">
     <li><span class="n">1</span><div>
       <p>Скачайте <a href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Klats-0.2.0.dmg</a>, откройте образ и перетащите Клац в «Программы».</p>
@@ -480,13 +512,13 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
       <pre><code id="cmd">git clone https://github.com/belokoz/klats.git &amp;&amp; cd klats &amp;&amp; ./scripts/install.sh</code></pre>
       <button type="button" class="chip copy" data-copy="cmd">Скопировать</button>
     </div>
-    <p>Это для Mac. Как собрать версию для Windows, написано <a href="https://github.com/belokoz/klats#собрать-самому">на GitHub</a>.</p>
+    <p><span data-for="win any">Это для Mac. </span>Как собрать версию для Windows, написано <a href="https://github.com/belokoz/klats#собрать-самому">на GitHub</a>.</p>
   </details>
 </section>
 
 <section id="windows" class="wrap">
-  <h2>Клац для Windows</h2>
-  <p class="lead">Та же одна функция: выделил текст, отпустил Win+Alt, раскладка сменилась. Win+Alt+Z меняет регистр. Win и Alt стоят слева от пробела, как ⌥ и ⌘ на Mac.</p>
+  <h2><span data-for="mac any">Клац для Windows</span><span data-for="win" hidden>Ставится за минуту</span></h2>
+  <p class="lead" data-for="mac any">Та же одна функция: выделил текст, отпустил Win+Alt, раскладка сменилась. Win+Alt+Z меняет регистр. Win и Alt стоят слева от пробела, как ⌥ и ⌘ на Mac.</p>
   <div class="cta">
     <a class="btn" href="https://github.com/belokoz/klats/releases/download/windows-v0.1.0/Klats-0.1.0-windows-x64.exe" data-exe>Скачать для Windows</a>
   </div>
@@ -506,43 +538,43 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
   <p class="req">В Windows 11 с включённым «Интеллектуальным управлением приложениями» Клац не запустится: у него нет подписи. В S-режиме тоже: его нет в Microsoft Store.</p>
   <figure class="shot">
     <img src="assets/windows-settings.png" width="520" height="632" loading="lazy" decoding="async" alt="Окно «Параметры Клаца» в Windows: сочетания Win Alt и Win Alt Z, пара раскладок «США» и «Русская», галочка «Переключать раскладку после конвертации», режим регистра, «Запускать при входе в Windows» и «Проверять обновления при запуске»">
-    <figcaption>Параметры Клаца в Windows.</figcaption>
+    <figcaption><span data-for="mac any">Параметры Клаца в Windows.</span><span data-for="win" hidden>Это все параметры. Целиком.</span></figcaption>
   </figure>
-  <p class="win-note">Всё остальное на странице показано на примере Mac: клавиши, цифры, снимки экрана. На Windows буфер обмена возвращается через 0,3–2 с, смотря в какой программе. Файлы, скопированные из архива, и вложения Outlook в буфер не вернутся.</p>
+  <p class="win-note"><span data-for="mac any">Всё остальное на странице показано на примере Mac: клавиши, цифры, снимки экрана. На Windows буфер</span><span data-for="win" hidden>Замеры и снимки экрана в остальных разделах сделаны на Mac. Буфер</span> обмена возвращается через 0,3–2 с, смотря в какой программе. Файлы, скопированные из архива, и вложения Outlook в буфер не вернутся.</p>
 </section>
 
 <section id="know" class="wrap">
   <h2>Что стоит знать</h2>
   <ul class="know">
-    <li>Ошиблись или передумали: ⌘Z на Mac и Ctrl+Z на Windows отменяют замену, как обычную вставку.</li>
-    <li>Терминалы, удалённые рабочие столы и игры не поддерживаются: там копирование и вставка работают иначе. В полях паролей Клац ничего не делает.</li>
-    <li>На Windows Клац не работает в окнах программ, запущенных от имени администратора: так Windows их защищает.</li>
+    <li>Ошиблись или передумали: <span data-for="mac" hidden>⌘Z отменяет</span><span data-for="win" hidden>Ctrl+Z отменяет</span><span data-for="any">⌘Z на Mac и Ctrl+Z на Windows отменяют</span> замену, как обычную вставку.</li>
+    <li>Терминалы, удалённые рабочие столы<span data-for="win" hidden>, виртуальные машины</span> и игры не поддерживаются: там копирование и вставка работают иначе. В полях паролей Клац ничего не делает.</li>
+    <li data-for="win any"><span data-for="any">На Windows </span>Клац не работает в окнах программ, запущенных от имени администратора: так Windows их защищает.</li>
     <li>Вставляется простой текст, форматирование берётся у окружения.</li>
     <li>Японский, китайский и корейский ввод в пары не входят.</li>
-    <li>Отпустили ⌥⌘, ничего не выделив? В обычных приложениях услышите «бип». В VS Code и похожих редакторах рядом появится сконвертированная копия всей строки. На Windows в обоих случаях Клац ничего не делает.</li>
+    <li data-for="mac any">Отпустили ⌥⌘, ничего не выделив? В обычных приложениях услышите «бип». В VS Code и похожих редакторах рядом появится сконвертированная копия всей строки.<span data-for="any"> На Windows в обоих случаях Клац ничего не делает.</span></li>
   </ul>
   <details>
     <summary>Это замена Punto Switcher?</summary>
     <p>Для одной его функции: исправить уже набранное. Автопереключения по мере набора нет: оно угадывает и ошибается в паролях, логинах и коде. Клац делает ровно то, что вы попросили, и только когда попросили.</p>
   </details>
-  <details>
+  <details data-for="mac any">
     <summary>⌥⌘ не сломает ⌥⌘Esc, ⌥⌘D и перетаскивание?</summary>
     <p>Нет. Клац срабатывает, только если вы отпустили ⌥⌘, не нажав между делом ни клавиши, ни кнопки мыши, и держали меньше секунды. Всё остальное работает как раньше. Сочетание меняется в настройках, в том числе на другое из одних модификаторов.</p>
   </details>
-  <details>
+  <details data-for="win any">
     <summary>Win+Alt не откроет «Пуск»?</summary>
-    <p>Нет. Правило то же, что на Mac: Клац срабатывает, только если вы отпустили Win+Alt, не нажав между делом ни клавиши, ни кнопки мыши, и держали меньше секунды. «Пуск» при этом не открывается, а Win+Alt+R и перетаскивание с Alt работают как раньше. Сочетание меняется в параметрах Клаца.</p>
+    <p>Нет. <span data-for="any">Правило то же, что на Mac: </span>Клац срабатывает, только если вы отпустили Win+Alt, не нажав между делом ни клавиши, ни кнопки мыши, и держали меньше секунды. «Пуск» при этом не открывается, а Win+Alt+R и перетаскивание с Alt работают как раньше. Сочетание меняется в параметрах Клаца.</p>
   </details>
   <details>
     <summary>Бесплатно? Что потом?</summary>
-    <p>MIT, без подписки, без аккаунта, без «про»-версии. Удалить так же просто. На Mac: «Завершить Клац» в меню и перетащить в корзину; на macOS 12 сначала выключите автозапуск в настройках, иначе в ~/Library/LaunchAgents останется файл io.github.belokoz.klats.login.plist. На Windows: «Пуск» → «Параметры» → «Приложения» → Клац → «Удалить».</p>
+    <p>MIT, без подписки, без аккаунта, без «про»-версии. <span data-for="mac" hidden>Удалить так же просто: «Завершить Клац» в меню и перетащить в корзину. На macOS 12 сначала выключите автозапуск в настройках, иначе в ~/Library/LaunchAgents останется файл io.github.belokoz.klats.login.plist.</span><span data-for="win" hidden>Удалить так же просто: «Пуск» → «Параметры» → «Приложения» → Клац → «Удалить».</span><span data-for="any">Удалить так же просто. На Mac: «Завершить Клац» в меню и перетащить в корзину; на macOS 12 сначала выключите автозапуск в настройках, иначе в ~/Library/LaunchAgents останется файл io.github.belokoz.klats.login.plist. На Windows: «Пуск» → «Параметры» → «Приложения» → Клац → «Удалить».</span></p>
   </details>
 </section>
 
 <section id="made" class="wrap">
   <h2>Сделан за три дня</h2>
   <p>Клац написан 16–18 сентября 2026 в диалоге с Claude Code. Автор ставил задачи, смотрел результат каждого этапа и правил; код и документы писал Claude. История с датами, развилками и цифрами — <a href="https://github.com/belokoz/klats/blob/main/docs/HISTORY.md">в репозитории</a>.</p>
-  <p>5 октября 2026 вышла версия для Windows: та же одна функция, сочетание Win+Alt. Дальше на Mac: версия 1.1 с историей буфера обмена по ⌃V.</p>
+  <p><span data-for="mac any">Версия для Windows сделана так же, но за два часа. Она вышла 5 октября 2026: та же одна функция, сочетание Win+Alt. Дальше на Mac: версия 1.1 с историей буфера обмена по ⌃V.</span><span data-for="win" hidden>Версия для Windows сделана так же, но за два часа. Она вышла 5 октября 2026. Дальше на Mac: версия 1.1 с историей буфера обмена, как Win+V в Windows.</span></p>
 </section>
 </main>
 
@@ -622,23 +654,37 @@ function convertCase(text, mode) {
 }
 
 // ---- Окружение ----
+// Та же проверка, что в <head>: там она ставит data-os для разметки, здесь нужна текстам, которые пишет скрипт.
 const forcedOS = (/[?&]os=(mac|win|other)\b/.exec(location.search) || [])[1];   // посмотреть глазами другого гостя: ?os=win
 const platform = forcedOS || (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
 const macLike = /mac/i.test(platform);
 const winLike = /^win/i.test(platform);
 const touch = navigator.maxTouchPoints > 1;
-const chordEnabled = macLike && !touch;         // на Windows отпускание Win открывает «Пуск», там только кнопка
+const chordEnabled = macLike && (!touch || !!forcedOS);   // на Windows отпускание Win открывает «Пуск», там только кнопка; ?os=mac показывает мак-вид и на тачскрине
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // «Скачать» в шапке: без скрипта ведёт к установке, на Mac и Windows сразу отдаёт файл для этой системы.
 const ownFile = chordEnabled ? $('.btn[data-dmg]') : winLike ? $('.btn[data-exe]') : null;
 if (ownFile) $('.top nav [data-download]').href = ownFile.href;
+// Чужой раздел уходит в конец страницы: гостю с Windows шаги для Mac, гостю с Mac раздел про Windows.
+// Оба раздела далеко под первым экраном. Пока система неизвестна, порядок как в разметке.
+if (winLike) $('#made').after($('#install'));
+else if (chordEnabled) $('#made').after($('#windows'));
+// Кнопка своей системы первая и в DOM, а не только через CSS order: Tab и читалка идут по разметке.
+if (winLike) $('.intro .btn[data-dmg]').before($('.intro .btn[data-exe]'));
 
 // ---- Демка ----
 const demo = $('#demo'), field = $('#demo-field'), overlay = $('#demo-overlay');
 const status = $('#demo-status'), hint = $('#demo-hint'), layoutPill = $('#demo-layout');
 const capBtn = $('#cap-btn'), capAlt = $('#cap-alt'), capCmd = $('#cap-cmd'), caseBtn = $('#case-btn');
-const KEYS_HINT = chordEnabled ? 'зажмите ⌥⌘ и отпустите' : 'нажмите кнопку ⌥⌘';
+const KEYS = winLike ? 'Win+Alt' : '⌥⌘';
+const KEYS_Z = winLike ? 'Win+Alt+Z' : '⌥⌘Z';
+const LAYOUT_NAME = winLike ? { abc: 'США', ru: 'Русская' } : { abc: 'ABC', ru: 'Русская – ПК' };   // как раскладки зовёт система гостя
+const KEYS_HINT = chordEnabled ? 'зажмите ⌥⌘ и отпустите' : 'нажмите кнопку ' + KEYS;
+// Имя кнопки для читалки и голосового управления начинается с клавиш, которыми её зовёт страница.
+capBtn.setAttribute('aria-label', KEYS + ': сменить раскладку выделенного, нажмите и отпустите');
+caseBtn.setAttribute('aria-label', KEYS_Z + ': сменить регистр выделенного, нажмите и отпустите');
+caseBtn.title = KEYS_Z + ': сменить регистр выделенного';
 let currentLayout = 'abc';   // что показывает плашка «Раскладка системы»; в приложении так решается ничья
 let preselected = false;   // текст показан выделенным, хотя поле не в фокусе
 let interacted = false;
@@ -660,7 +706,7 @@ function showFakeSelection() {
 }
 function setLayoutPill(which, changed) {
   currentLayout = which;
-  layoutPill.innerHTML = 'Раскладка системы: <b>' + (which === 'ru' ? 'Русская – ПК' : 'ABC') + '</b>';
+  layoutPill.innerHTML = 'Раскладка системы: <b>' + (which === 'ru' ? LAYOUT_NAME.ru : LAYOUT_NAME.abc) + '</b>';
   layoutPill.classList.toggle('changed', !!changed && which === 'ru');   // красный только у кириллицы
 }
 const tieBreak = () => (currentLayout === 'ru' ? 'bToA' : 'aToB');
@@ -735,7 +781,7 @@ function fireLayout(source) {
   animateRetype(start, src, text, reselect ? showFakeSelection : null);
   setLayoutPill(direction === 'aToB' ? 'ru' : 'abc', true);
   if (auto) say('Так работает Клац. Теперь сами: выделите текст, ' + KEYS_HINT + '.', true);
-  else say(direction === 'aToB' ? 'Готово. Клац переключил бы раскладку системы на русскую.' : 'Готово. Клац переключил бы раскладку системы на ABC.', true);
+  else say('Готово. Клац переключил бы раскладку системы на ' + (direction === 'aToB' ? 'русскую' : winLike ? 'английскую' : 'ABC') + '.', true);
 }
 function fireCase(source) {
   interacted = true;
@@ -751,7 +797,7 @@ function fireCase(source) {
   else replaceRange(start, end, text);
   if (source === 'chord') guardUntil = performance.now() + 1500;
   animateRetype(start, src, text, touch ? showFakeSelection : null);
-  say('Готово: регистр инвертирован. Режим «все строчные» включается в настройках.', true);
+  say('Готово: регистр инвертирован. Режим «все строчные» включается в ' + (winLike ? 'параметрах' : 'настройках') + '.', true);
 }
 
 // Поле
@@ -879,7 +925,7 @@ $$('.chip[data-text]').forEach(chip => chip.addEventListener('click', () => {
     field.focus({ preventScroll: true });
     field.select();
   }
-  if (isCase) say('Текст выделен. Теперь ' + (chordEnabled ? 'нажмите ⌥⌘Z' : 'нажмите кнопку ⌥⌘Z') + ': регистр инвертируется.');
+  if (isCase) say('Текст выделен. Теперь ' + (chordEnabled ? 'нажмите ⌥⌘Z' : 'нажмите кнопку ' + KEYS_Z) + ': регистр инвертируется.');
   else say('Текст выделен. Теперь ' + KEYS_HINT + '.');
 }));
 
@@ -888,9 +934,10 @@ autosize();
 showFakeSelection();
 setLayoutPill('abc', false);
 if (chordEnabled) say('Выделите текст, зажмите ⌥⌘ и отпустите. Или нажмите кнопку.');
-else say('Текст выделен: нажмите кнопку ⌥⌘.');
-// Гостю не с Mac: на странице работает кнопка, а клавиши в Клаце для Windows свои. Подсказка не исчезает после автопрогона.
-if (!macLike) hint.textContent = 'Попробуйте прямо здесь, кнопкой ⌥⌘. В Клаце для Windows это клавиши Win+Alt.';
+else say('Текст выделен: нажмите кнопку ' + KEYS + '.');
+// Гостю с телефона или Linux: на странице работает кнопка, а в Клаце для Windows клавиши свои. Гостю с Windows
+// подсказку про Win+Alt даёт разметка. Подсказка не исчезает после автопрогона.
+if (!macLike && !winLike) hint.textContent = 'Попробуйте прямо здесь, кнопкой ⌥⌘. В Клаце для Windows это клавиши Win+Alt.';
 if (!reduceMotion) {
   const autoRun = () => setTimeout(() => {
     if (interacted) return;
@@ -913,12 +960,12 @@ if (!reduceMotion) {
 const steps = $$('#steps .step');
 const st = { text: $('#st-text'), clip: $('#st-clip'), snap: $('#st-snap'), layout: $('#st-layout') };
 const FRAMES = [
-  { text: 'ghbdtn', sel: true, clip: 'что-то важное', snap: '', layout: 'ABC' },
-  { text: 'ghbdtn', sel: true, clip: 'ghbdtn', snap: 'снимок: что-то важное', layout: 'ABC' },
-  { text: 'ghbdtn', sel: true, clip: 'привет', snap: 'снимок: что-то важное', layout: 'ABC', flash: 'clip' },
-  { text: 'привет', clip: 'привет', snap: 'снимок: что-то важное', layout: 'ABC', flash: 'text' },
-  { text: 'привет', clip: 'привет', snap: 'снимок: что-то важное', layout: 'Русская – ПК', flash: 'layout' },
-  { text: 'привет', clip: 'что-то важное', snap: '', layout: 'Русская – ПК' },
+  { text: 'ghbdtn', sel: true, clip: 'что-то важное', snap: '', layout: LAYOUT_NAME.abc },
+  { text: 'ghbdtn', sel: true, clip: 'ghbdtn', snap: 'снимок: что-то важное', layout: LAYOUT_NAME.abc },
+  { text: 'ghbdtn', sel: true, clip: 'привет', snap: 'снимок: что-то важное', layout: LAYOUT_NAME.abc, flash: 'clip' },
+  { text: 'привет', clip: 'привет', snap: 'снимок: что-то важное', layout: LAYOUT_NAME.abc, flash: 'text' },
+  { text: 'привет', clip: 'привет', snap: 'снимок: что-то важное', layout: LAYOUT_NAME.ru, flash: 'layout' },
+  { text: 'привет', clip: 'что-то важное', snap: '', layout: LAYOUT_NAME.ru },
 ];
 let storyTimer = null, storyPlayed = false, frame = 0;
 const againBtn = $('#story-again');
