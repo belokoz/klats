@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Клац: исправить раскладку выделенного текста на Mac и Windows</title>
 <meta name="description" content="Выделил текст, отпустил ⌥⌘ на Mac или Win+Alt на Windows, раскладка сменилась. Бесплатная утилита для macOS и Windows: одна функция Punto Switcher, без автозамен и словарей, текст никуда не отправляет. Открытый код.">
+<meta name="author" content="Михаил Белокоз">
 <meta name="theme-color" content="#F5F5F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1B1E24" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
@@ -197,30 +198,29 @@ html[data-os="win"] .cap-btn.case .cap { font-size: 15px; }
 }
 .btn:hover { opacity: .92; }
 /* Кнопка своей системы первая и тёмная, чужая рядом и легче. Пока система неизвестна, обе тёмные. */
-html[data-os="win"] .intro .btn[data-exe] { order: -1; }
+html:not([data-os="mac"]) .intro .btn[data-exe] { order: -1; }   /* Windows первой и когда система неизвестна: таких гостей больше */
 html[data-os="mac"] .intro .btn[data-exe],
 html[data-os="win"] .intro .btn[data-dmg] { background: none; color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink-3); }
 @media (max-width: 500px) { .intro .btn { min-width: 15em; } }   /* столбиком: обе кнопки одной ширины */
 .trust { margin-top: 14px; font-size: 14px; color: var(--ink-2); }
 .nw { white-space: nowrap; }
 
-/* Клац для Windows: кнопка по общему левому краю, снимок окна в свой размер (он 1x) */
-#windows .cta { justify-content: flex-start; }
-#windows .shot img { max-width: 520px; }
-#windows .win-note { margin-top: 28px; }
+/* Панель Windows в «Ставится за минуту»: кнопка по общему левому краю, снимок окна в свой размер (он 1x) */
+#install-win .cta { justify-content: flex-start; }
+#install-win .shot img { max-width: 520px; }
+#install-win .win-note { margin-top: 28px; }
 
 
 /* Одно нажатие */
 .story { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 32px 48px; margin-top: 32px; align-items: start; }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: step; }
 .n { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--ink-3); display: grid; place-items: center; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; transition: background .2s, color .2s, border-color .2s; }
-.step { display: grid; grid-template-columns: 30px 1fr; gap: 14px; color: var(--ink-2); transition: color .2s; }
+.step { display: grid; grid-template-columns: 30px 1fr; gap: 14px; color: var(--ink-2); transition: color .2s; cursor: default; -webkit-tap-highlight-color: transparent; }
 .step b { display: block; color: inherit; }
 .step span.t { display: block; font-size: 15px; }
 .step.done .n { color: var(--ink-3); border-color: var(--line); }
 .step.now { color: var(--ink); }
 .step.now .n { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.step.now { color: var(--ink); }
 .step kbd { margin-right: .3em; color: var(--ink); }
 .step:not(.now):not(.done) kbd { color: inherit; }
 .stage { border: 1px solid var(--line); border-radius: var(--r-l); padding: 14px 16px; display: grid; gap: 10px; background: var(--panel); font-size: 15px; }
@@ -302,6 +302,20 @@ ol.unblock .cmd { margin-top: 8px; }
 ol.how .small { font-size: 15px; color: var(--ink-2); }
 ol.unblock + p { margin-top: 12px; }
 .req { margin-top: 28px; font-size: 15px; color: var(--ink-2); }
+/* Переключатель установки Windows | macOS: две радиокнопки, работает и без скрипта. Система гостя выбирает вкладку заранее, пока она неизвестна — Windows: их больше. */
+.os-switch { margin: 0; padding: 0; border: 0; min-width: 0; }
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.seg-in { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.seg { display: inline-flex; gap: 3px; margin-top: 24px; padding: 3px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--panel); }
+.seg label { font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--ink-2); padding: 8px 18px; border-radius: 7px; cursor: pointer; }
+.seg label:hover { color: var(--ink); }
+#install h2 { scroll-margin-top: 24px; }   /* переход по #windows: заголовок остаётся на экране */
+#os-mac:checked ~ .seg label[for="os-mac"], #os-win:checked ~ .seg label[for="os-win"] { background: var(--tile); color: var(--tile-ink); }
+#os-mac:focus-visible ~ .seg label[for="os-mac"], #os-win:focus-visible ~ .seg label[for="os-win"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+.os-panel { max-width: 720px; }
+.os-panel > .lead { margin-top: 28px; }
+#os-mac:checked ~ #install-win, #os-win:checked ~ #install-mac { display: none; }
+.os-title { display: none; }
 details { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
 details + details { margin-top: 0; }
 summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; gap: 10px; align-items: baseline; }
@@ -325,9 +339,14 @@ footer { border-top: 1px solid var(--line); padding-top: 28px; margin-top: 16px;
 footer nav { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 footer .fine { font-size: 13px; color: var(--ink-2); }
 
-@media (forced-colors: active) { .btn { border: 1px solid; } }   /* высокая контрастность Windows убирает фон и тень */
+@media (forced-colors: active) {   /* высокая контрастность Windows убирает фон и тень */
+  .btn { border: 1px solid; }
+  #os-mac:checked ~ .seg label[for="os-mac"], #os-win:checked ~ .seg label[for="os-win"] { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+}
 @media print {
-  .demo, .btn-text, .copy, .kb-tool, .kb-hint { display: none; }
+  .demo, .btn-text, .copy, .kb-tool, .kb-hint, .seg { display: none; }
+  .os-panel { display: block !important; }
+  .os-title { display: block; margin: 28px 0 0; font-size: 19px; }
   .shot { background: none; padding: 0; }
   .shot figcaption { color: var(--ink-2); }
   .btn { color: var(--ink); background: none; border: 1px solid var(--ink); }
@@ -374,7 +393,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
       <p class="trust">
         <span data-for="mac" hidden>Klats-0.2.0.dmg, 1,0 МБ · macOS 12+, Apple Silicon и Intel · бесплатно, MIT</span>
         <span data-for="win" hidden>Windows&nbsp;10 версии&nbsp;1903 и&nbsp;новее или Windows&nbsp;11, <span class="nw">64-бит · 2,1 МБ</span> · бесплатно, MIT<br><a href="#windows">Что покажет Windows при&nbsp;установке</a></span>
-        <span data-for="any">Бесплатно, MIT · macOS&nbsp;12+, Apple Silicon <span class="nw">и Intel · 1,0 МБ</span><br>Windows&nbsp;10 версии&nbsp;1903 и&nbsp;новее или Windows&nbsp;11, <span class="nw">64-бит · 2,1 МБ</span> · <a href="#windows">что покажет Windows при&nbsp;установке</a></span>
+        <span data-for="any">Windows&nbsp;10 версии&nbsp;1903 и&nbsp;новее или Windows&nbsp;11, <span class="nw">64-бит · 2,1 МБ</span> · <a href="#windows">что покажет Windows при&nbsp;установке</a><br>macOS&nbsp;12+, Apple Silicon <span class="nw">и Intel · 1,0 МБ</span> · бесплатно, MIT</span>
       </p>
   </div>
 
@@ -471,76 +490,87 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
 </section>
 
 <section id="install" class="wrap">
-  <h2><span data-for="mac any">Ставится за минуту</span><span data-for="win" hidden>Установка на Mac</span></h2>
-  <p class="small" data-for="any">Это шаги для Mac. Для Windows они в разделе <a href="#windows">«Клац для Windows»</a>.</p>
-  <ol class="how">
-    <li><span class="n">1</span><div>
-      <p>Скачайте <a href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Klats-0.2.0.dmg</a>, откройте образ и перетащите Клац в «Программы».</p>
-    </div></li>
-    <li><span class="n">2</span><div>
-      <p>Откройте Клац. Сразу macOS его не запустит: она не может проверить разработчика. Запуск нужно один раз подтвердить, после установки и после каждого обновления.</p>
-      <p><b>macOS 15 и новее.</b> Дважды щёлкните по Клацу в «Программах» и в окне нажмите «Готово» (не «Переместить в Корзину»). Откройте «Системные настройки» (меню с яблоком в левом верхнем углу экрана) → «Конфиденциальность и безопасность», прокрутите вниз до раздела «Безопасность» и нажмите «Все равно открыть». Введите пароль от Mac и нажмите «Открыть».</p>
-      <p><b>macOS 12–14.</b> В «Программах» нажмите на Клац правой кнопкой мыши (или щёлкните, зажав Control) и выберите «Открыть». В окне ещё раз нажмите «Открыть».</p>
-      <p><b>Не получилось?</b> Нет кнопки «Открыть» или появилось окно «Не удается открыть программу «Клац».». Так бывает, особенно если DMG прислали через мессенджер. Снимите с Клаца отметку «скачано из интернета», это две минуты:</p>
-      <ol class="unblock">
-        <li>Откройте Терминал: Finder → «Программы» → папка «Утилиты» → «Терминал». Или нажмите ⌘ и Пробел, наберите «Терминал» и нажмите Return.</li>
-        <li>Скопируйте эту строку:
-          <div class="cmd">
-            <pre><code id="cmd-quarantine">xattr -dr com.apple.quarantine /Applications/Клац.app</code></pre>
-            <button type="button" class="chip copy" data-copy="cmd-quarantine">Скопировать</button>
-          </div>
-        </li>
-        <li>Щёлкните в окне Терминала, вставьте строку (⌘V) и нажмите Return. Если Терминал ничего не ответил, всё получилось.</li>
-        <li>Закройте Терминал и откройте Клац двойным щелчком.</li>
+  <h2 id="windows">Ставится за минуту</h2>
+  <fieldset class="os-switch">
+    <legend class="vh">Для какой системы показать установку</legend>
+    <input class="seg-in" type="radio" name="os" id="os-win" checked>
+    <input class="seg-in" type="radio" name="os" id="os-mac">
+    <script>document.getElementById(document.documentElement.getAttribute('data-os') === 'mac' ? 'os-mac' : 'os-win').checked = true;</script>
+    <div class="seg">
+      <label for="os-win">Windows</label>
+      <label for="os-mac">macOS</label>
+    </div>
+    <div class="os-panel" id="install-win">
+      <h3 class="os-title">На Windows</h3>
+      <p class="lead" data-for="mac any">Та же одна функция: выделил текст, отпустил Win+Alt, раскладка сменилась. Win+Alt+Z меняет регистр. Win и Alt стоят слева от пробела, как ⌥ и ⌘ на Mac.</p>
+      <div class="cta">
+        <a class="btn" href="https://github.com/belokoz/klats/releases/download/windows-v0.1.0/Klats-0.1.0-windows-x64.exe" data-exe>Скачать для Windows</a>
+      </div>
+      <p class="trust">Klats-0.1.0-windows-x64.exe, 2,1 МБ · Windows 10 версии 1903 и новее или Windows 11, 64-бит</p>
+      <ol class="how">
+        <li><span class="n">1</span><div>
+          <p>Браузер может предупредить, что такой файл скачивают редко: подтвердите сохранение и запустите файл. Если браузер совсем не даёт его сохранить, скачайте в другом браузере.</p>
+        </div></li>
+        <li><span class="n">2</span><div>
+          <p>Windows покажет окно «Система Windows защитила ваш компьютер». Нажмите «Подробнее», затем «Выполнить в любом случае».</p>
+          <aside>Почему так: у Клаца нет платной подписи, и Windows не знает издателя. Код открыт. То же окно будет при каждом обновлении.</aside>
+        </div></li>
+        <li><span class="n">3</span><div>
+          <p>Клац установится без прав администратора и сразу запустится. Разрешений ему не нужно: попробуйте Win+Alt на тестовом поле в окне первого запуска. Значок Клаца ищите рядом с часами, за стрелкой ^.</p>
+        </div></li>
       </ol>
-      <p class="small">Команда меняет только Клац. Если Терминал ответил «Permission denied», вставьте ту же строку с <code>sudo</code> и пробелом в начале и введите пароль от Mac: при вводе он не виден, это нормально.</p>
-      <aside>Почему так: у проекта нет платного аккаунта Apple. Код открыт, а подпись постоянная, поэтому обновления разрешение не сбрасывают.</aside>
-    </div></li>
-    <li><span class="n">3</span><div>
-      <p>Клац попросит «Универсальный доступ». Это единственное разрешение, и нужно оно для двух вещей: чтобы Клац видел, когда вы отпускаете ⌥⌘, и чтобы нажать за вас ⌘C и ⌘V. Включите Клац в списке, вернитесь в окно первого запуска и попробуйте на тестовом поле.</p>
+      <p class="req">В Windows 11 с включённым «Интеллектуальным управлением приложениями» Клац не запустится: у него нет подписи. В S-режиме тоже: его нет в Microsoft Store.</p>
       <figure class="shot">
-        <img src="assets/onboarding.png" width="420" height="479" loading="lazy" decoding="async" alt="Окно первого запуска Клаца: разрешение выдано, поле для пробы с текстом ghbdtn vbh, галочка автозапуска">
+        <img src="assets/windows-settings.png" width="520" height="632" loading="lazy" decoding="async" alt="Окно «Параметры Клаца» в Windows: сочетания Win Alt и Win Alt Z, пара раскладок «США» и «Русская», галочка «Переключать раскладку после конвертации», режим регистра, «Запускать при входе в Windows» и «Проверять обновления при запуске»">
+        <figcaption><span data-for="mac any">Параметры Клаца в Windows.</span><span data-for="win" hidden>Это все параметры. Целиком.</span></figcaption>
       </figure>
-    </div></li>
-  </ol>
+      <p class="win-note"><span data-for="mac any">Всё остальное на странице показано на примере Mac: клавиши, цифры, снимки экрана. На Windows буфер</span><span data-for="win" hidden>Замеры и снимки экрана в остальных разделах сделаны на Mac. Буфер</span> обмена возвращается через 0,3–2 с, смотря в какой программе. Файлы, скопированные из архива, и вложения Outlook в буфер не вернутся.</p>
+    </div>
+    <div class="os-panel" id="install-mac">
+      <h3 class="os-title">На Mac</h3>
+      <ol class="how">
+        <li><span class="n">1</span><div>
+          <p>Скачайте <a href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Klats-0.2.0.dmg</a>, откройте образ и перетащите Клац в «Программы».</p>
+        </div></li>
+        <li><span class="n">2</span><div>
+          <p>Откройте Клац. Сразу macOS его не запустит: она не может проверить разработчика. Запуск нужно один раз подтвердить, после установки и после каждого обновления.</p>
+          <p><b>macOS 15 и новее.</b> Дважды щёлкните по Клацу в «Программах» и в окне нажмите «Готово» (не «Переместить в Корзину»). Откройте «Системные настройки» (меню с яблоком в левом верхнем углу экрана) → «Конфиденциальность и безопасность», прокрутите вниз до раздела «Безопасность» и нажмите «Все равно открыть». Введите пароль от Mac и нажмите «Открыть».</p>
+          <p><b>macOS 12–14.</b> В «Программах» нажмите на Клац правой кнопкой мыши (или щёлкните, зажав Control) и выберите «Открыть». В окне ещё раз нажмите «Открыть».</p>
+          <p><b>Не получилось?</b> Нет кнопки «Открыть» или появилось окно «Не удается открыть программу «Клац».». Так бывает, особенно если DMG прислали через мессенджер. Снимите с Клаца отметку «скачано из интернета», это две минуты:</p>
+          <ol class="unblock">
+            <li>Откройте Терминал: Finder → «Программы» → папка «Утилиты» → «Терминал». Или нажмите ⌘ и Пробел, наберите «Терминал» и нажмите Return.</li>
+            <li>Скопируйте эту строку:
+              <div class="cmd">
+                <pre><code id="cmd-quarantine">xattr -dr com.apple.quarantine /Applications/Клац.app</code></pre>
+                <button type="button" class="chip copy" data-copy="cmd-quarantine">Скопировать</button>
+              </div>
+            </li>
+            <li>Щёлкните в окне Терминала, вставьте строку (⌘V) и нажмите Return. Если Терминал ничего не ответил, всё получилось.</li>
+            <li>Закройте Терминал и откройте Клац двойным щелчком.</li>
+          </ol>
+          <p class="small">Команда меняет только Клац. Если Терминал ответил «Permission denied», вставьте ту же строку с <code>sudo</code> и пробелом в начале и введите пароль от Mac: при вводе он не виден, это нормально.</p>
+          <aside>Почему так: у проекта нет платного аккаунта Apple. Код открыт, а подпись постоянная, поэтому обновления разрешение не сбрасывают.</aside>
+        </div></li>
+        <li><span class="n">3</span><div>
+          <p>Клац попросит «Универсальный доступ». Это единственное разрешение, и нужно оно для двух вещей: чтобы Клац видел, когда вы отпускаете ⌥⌘, и чтобы нажать за вас ⌘C и ⌘V. Включите Клац в списке, вернитесь в окно первого запуска и попробуйте на тестовом поле.</p>
+          <figure class="shot">
+            <img src="assets/onboarding.png" width="420" height="479" loading="lazy" decoding="async" alt="Окно первого запуска Клаца: разрешение выдано, поле для пробы с текстом ghbdtn vbh, галочка автозапуска">
+          </figure>
+        </div></li>
+      </ol>
+    </div>
+  </fieldset>
   <p class="req">Интерфейс на русском и английском, язык берётся из системы.</p>
   <details>
     <summary>Собрать самому</summary>
-    <p>Xcode не нужен, достаточно Command Line Tools. Тесты ядра тоже идут без Xcode.</p>
+    <p><span data-for="win any">Это для Mac. </span>Xcode не нужен, достаточно Command Line Tools. Тесты ядра тоже идут без Xcode.</p>
     <p>Нужен Swift 6, то есть Command Line Tools 16 и новее, а они ставятся только на macOS 14.5 и новее. На macOS 12 и 13 берите готовый DMG, он универсальный.</p>
     <div class="cmd">
       <pre><code id="cmd">git clone https://github.com/belokoz/klats.git &amp;&amp; cd klats &amp;&amp; ./scripts/install.sh</code></pre>
       <button type="button" class="chip copy" data-copy="cmd">Скопировать</button>
     </div>
-    <p><span data-for="win any">Это для Mac. </span>Как собрать версию для Windows, написано <a href="https://github.com/belokoz/klats#собрать-самому">на GitHub</a>.</p>
+    <p>Как собрать версию для Windows, написано <a href="https://github.com/belokoz/klats#собрать-самому">на GitHub</a>.</p>
   </details>
-</section>
-
-<section id="windows" class="wrap">
-  <h2><span data-for="mac any">Клац для Windows</span><span data-for="win" hidden>Ставится за минуту</span></h2>
-  <p class="lead" data-for="mac any">Та же одна функция: выделил текст, отпустил Win+Alt, раскладка сменилась. Win+Alt+Z меняет регистр. Win и Alt стоят слева от пробела, как ⌥ и ⌘ на Mac.</p>
-  <div class="cta">
-    <a class="btn" href="https://github.com/belokoz/klats/releases/download/windows-v0.1.0/Klats-0.1.0-windows-x64.exe" data-exe>Скачать для Windows</a>
-  </div>
-  <p class="trust">Klats-0.1.0-windows-x64.exe, 2,1 МБ · Windows 10 версии 1903 и новее или Windows 11, 64-бит</p>
-  <ol class="how">
-    <li><span class="n">1</span><div>
-      <p>Браузер может предупредить, что такой файл скачивают редко: подтвердите сохранение и запустите файл. Если браузер совсем не даёт его сохранить, скачайте в другом браузере.</p>
-    </div></li>
-    <li><span class="n">2</span><div>
-      <p>Windows покажет окно «Система Windows защитила ваш компьютер». Нажмите «Подробнее», затем «Выполнить в любом случае».</p>
-      <aside>Почему так: у Клаца нет платной подписи, и Windows не знает издателя. Код открыт. То же окно будет при каждом обновлении.</aside>
-    </div></li>
-    <li><span class="n">3</span><div>
-      <p>Клац установится без прав администратора и сразу запустится. Разрешений ему не нужно: попробуйте Win+Alt на тестовом поле в окне первого запуска. Значок Клаца ищите рядом с часами, за стрелкой ^.</p>
-    </div></li>
-  </ol>
-  <p class="req">В Windows 11 с включённым «Интеллектуальным управлением приложениями» Клац не запустится: у него нет подписи. В S-режиме тоже: его нет в Microsoft Store.</p>
-  <figure class="shot">
-    <img src="assets/windows-settings.png" width="520" height="632" loading="lazy" decoding="async" alt="Окно «Параметры Клаца» в Windows: сочетания Win Alt и Win Alt Z, пара раскладок «США» и «Русская», галочка «Переключать раскладку после конвертации», режим регистра, «Запускать при входе в Windows» и «Проверять обновления при запуске»">
-    <figcaption><span data-for="mac any">Параметры Клаца в Windows.</span><span data-for="win" hidden>Это все параметры. Целиком.</span></figcaption>
-  </figure>
-  <p class="win-note"><span data-for="mac any">Всё остальное на странице показано на примере Mac: клавиши, цифры, снимки экрана. На Windows буфер</span><span data-for="win" hidden>Замеры и снимки экрана в остальных разделах сделаны на Mac. Буфер</span> обмена возвращается через 0,3–2 с, смотря в какой программе. Файлы, скопированные из архива, и вложения Outlook в буфер не вернутся.</p>
 </section>
 
 <section id="know" class="wrap">
@@ -573,7 +603,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
 
 <section id="made" class="wrap">
   <h2>Сделан за три дня</h2>
-  <p>Клац написан 16–18 сентября 2026 в диалоге с Claude Code. Автор ставил задачи, смотрел результат каждого этапа и правил; код и документы писал Claude. История с датами, развилками и цифрами — <a href="https://github.com/belokoz/klats/blob/main/docs/HISTORY.md">в репозитории</a>.</p>
+  <p>Клац сделал <a href="https://belokoz.ru/">Михаил Белокоз</a> в диалоге с Claude Code 16–18 сентября 2026: ставил задачи, смотрел результат каждого этапа и правил; код и документы писал Claude. История с датами, развилками и цифрами — <a href="https://github.com/belokoz/klats/blob/main/docs/HISTORY.md">в репозитории</a>.</p>
   <p><span data-for="mac any">Версия для Windows сделана так же, но за два часа. Она вышла 5 октября 2026: та же одна функция, сочетание Win+Alt. Дальше на Mac: версия 1.1 с историей буфера обмена по ⌃V.</span><span data-for="win" hidden>Версия для Windows сделана так же, но за два часа. Она вышла 5 октября 2026. Дальше на Mac: версия 1.1 с историей буфера обмена, как Win+V в Windows.</span></p>
 </section>
 </main>
@@ -586,7 +616,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
     <a href="https://github.com/belokoz/klats/blob/main/docs/HISTORY.md">Как это делалось</a>
     <a href="https://github.com/belokoz/klats/blob/main/README.en.md">English</a>
   </nav>
-  <p>От автора: <a href="https://diktuy.ru/?utm_source=klats&amp;utm_medium=site&amp;utm_campaign=footer">Диктуй</a>, голос в текст.</p>
+  <p>Автор: <a href="https://belokoz.ru/">Михаил Белокоз</a>. От него же: <a href="https://diktuy.ru/?utm_source=klats&amp;utm_medium=site&amp;utm_campaign=footer">Диктуй</a>, голос в текст.</p>
   <p class="fine">Этот сайт ничего никуда не отправляет: без счётчиков, без чужих шрифтов, без кук.</p>
 </footer>
 
@@ -666,12 +696,12 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // «Скачать» в шапке: без скрипта ведёт к установке, на Mac и Windows сразу отдаёт файл для этой системы.
 const ownFile = chordEnabled ? $('.btn[data-dmg]') : winLike ? $('.btn[data-exe]') : null;
 if (ownFile) $('.top nav [data-download]').href = ownFile.href;
-// Чужой раздел уходит в конец страницы: гостю с Windows шаги для Mac, гостю с Mac раздел про Windows.
-// Оба раздела далеко под первым экраном. Пока система неизвестна, порядок как в разметке.
-if (winLike) $('#made').after($('#install'));
-else if (chordEnabled) $('#made').after($('#windows'));
-// Кнопка своей системы первая и в DOM, а не только через CSS order: Tab и читалка идут по разметке.
-if (winLike) $('.intro .btn[data-dmg]').before($('.intro .btn[data-exe]'));
+// Переключатель установки: ссылка на #windows сразу показывает шаги для Windows.
+const pickWin = () => { $('#os-win').checked = true; };
+if (location.hash === '#windows') pickWin();
+$$('a[href="#windows"]').forEach(a => a.addEventListener('click', pickWin));
+// Кнопка Windows первая и в DOM, а не только через CSS order: Tab и читалка идут по разметке. Mac остаётся первым только у гостя с Mac.
+if (!macLike) $('.intro .btn[data-dmg]').before($('.intro .btn[data-exe]'));
 
 // ---- Демка ----
 const demo = $('#demo'), field = $('#demo-field'), overlay = $('#demo-overlay');
@@ -967,7 +997,7 @@ const FRAMES = [
   { text: 'привет', clip: 'привет', snap: 'снимок: что-то важное', layout: LAYOUT_NAME.ru, flash: 'layout' },
   { text: 'привет', clip: 'что-то важное', snap: '', layout: LAYOUT_NAME.ru },
 ];
-let storyTimer = null, storyPlayed = false, frame = 0;
+let storyTimer = null, storyPlayed = false, storyDone = false, frame = 0;
 const againBtn = $('#story-again');
 function setVal(el, value, flash) {
   if (el.textContent !== value) { el.textContent = value; }
@@ -985,24 +1015,39 @@ function showFrame(n) {
 }
 function playStory() {
   clearInterval(storyTimer);
+  storyPlayed = true;
+  storyDone = false;
   let n = 0;
   showFrame(0);
-  storyTimer = setInterval(() => { n++; showFrame(n); if (n >= 5) clearInterval(storyTimer); }, 850);
+  storyTimer = setInterval(() => { n++; showFrame(n); if (n >= 5) { clearInterval(storyTimer); storyDone = true; } }, 850);
 }
+// После полного показа пункты можно рассматривать по одному: наведение мышью или касание показывает его кадр,
+// а когда мышь уходит со списка, раскадровка возвращается к итогу. Палец не наводится: pointerenter и pointerleave
+// приходят и в начале прокрутки, поэтому для касания работает только click.
+const byHover = e => storyDone && e.pointerType !== 'touch';
+steps.forEach((li, i) => {
+  li.addEventListener('pointerenter', e => { if (byHover(e)) showFrame(i + 1); });
+  li.addEventListener('click', () => { if (storyDone) showFrame(i + 1); });
+});
+$('#steps').addEventListener('pointerleave', e => { if (byHover(e) && frame !== 5) showFrame(5); });
 if (reduceMotion) {
   // Без движения: показываем итог сразу, а кнопка листает кадры по одному.
   showFrame(5);
+  storyDone = true;
   againBtn.textContent = 'Показать по шагам';
   againBtn.addEventListener('click', () => showFrame((frame % 5) + 1));
 } else {
   showFrame(0);
   againBtn.addEventListener('click', playStory);
+  // Показ начинается, когда верх раскадровки доходит до середины экрана (нижняя половина окна не считается).
+  // На телефоне сцена стоит под списком: там ждём, пока она покажется почти целиком, список к этому моменту уже на экране.
   if ('IntersectionObserver' in window) {
+    const narrow = matchMedia('(max-width: 700px)').matches;
     const io = new IntersectionObserver(entries => {
-      if (entries.some(e => e.isIntersecting) && !storyPlayed) { storyPlayed = true; playStory(); io.disconnect(); }
-    }, { threshold: 0.25 });
-    io.observe($('#story'));
-  } else { showFrame(5); }
+      if (entries.some(e => e.isIntersecting)) { io.disconnect(); if (!storyPlayed) playStory(); }
+    }, narrow ? { threshold: 0.9 } : { rootMargin: '0px 0px -50% 0px', threshold: 0 });
+    io.observe(narrow ? $('#story .stage') : $('#story'));
+  } else { showFrame(5); storyDone = true; }
 }
 
 // ---- Одна клавиша, две буквы ----
