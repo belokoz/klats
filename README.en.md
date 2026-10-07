@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.png" width="128" alt="Klats"></p>
 <h1 align="center">Клац (Klats)</h1>
-<p align="center">Select text, release ⌥⌘ on a Mac or Win+Alt on Windows, the keyboard layout is fixed.<br>A free utility for macOS and Windows with one job. No autocorrect, no dictionaries, and Klats never sends your text anywhere.</p>
+<p align="center">Select text, press ⌥⌘ on a Mac or Win+Alt on Windows, the keyboard layout is fixed.<br>A free utility for macOS and Windows with one job. No autocorrect, no dictionaries, and Klats never sends your text anywhere.</p>
 <p align="center"><a href="https://github.com/belokoz/klats/releases/latest">Download for macOS</a> · <a href="https://github.com/belokoz/klats/releases/tag/windows-v0.1.0">Download for Windows</a> · <a href="README.md">Русский</a> · <a href="docs/HISTORY.md">How it was made</a></p>
 
 ## What it does
@@ -81,7 +81,7 @@ git clone https://github.com/belokoz/klats.git; cd klats\windows
 
 ## How it works
 
-One press. Klats catches the release of ⌥⌘ or Win+Alt, takes the selection with a copy, converts it, pastes it back, restores the clipboard and switches the system layout. It copies and pastes with ⌘C and ⌘V on a Mac and with Ctrl+Insert and Shift+Insert on Windows. That is why it works everywhere copy and paste work, and not in terminals.
+One press. Klats catches ⌥⌘ or Win+Alt, takes the selection with a copy, converts it, pastes it back, restores the clipboard and switches the system layout. It copies and pastes with ⌘C and ⌘V on a Mac and with Ctrl+Insert and Shift+Insert on Windows. That is why it works everywhere copy and paste work, and not in terminals.
 
 The character-to-key tables are built from the system's layouts in a fraction of a millisecond, with `UCKeyTranslate` on a Mac and `ToUnicodeEx` on Windows: character, the key it lives on in the source layout, the character on that key in the target layout. The direction comes from the text: characters that exist in only one of the two layouts vote.
 

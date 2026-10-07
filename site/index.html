@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Клац: исправить раскладку выделенного текста на Mac и Windows</title>
-<meta name="description" content="Выделил текст, отпустил ⌥⌘ на Mac или Win+Alt на Windows, раскладка сменилась. Бесплатная утилита для macOS и Windows: одна функция Punto Switcher, без автозамен и словарей, текст никуда не отправляет. Открытый код.">
+<meta name="description" content="Выделил текст, нажал ⌥⌘ на Mac или Win+Alt на Windows, раскладка сменилась. Бесплатная утилита для macOS и Windows: одна функция Punto Switcher, без автозамен и словарей, текст никуда не отправляет. Открытый код.">
 <meta name="author" content="Михаил Белокоз">
 <meta name="theme-color" content="#F5F5F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1B1E24" media="(prefers-color-scheme: dark)">
@@ -13,12 +13,12 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" sizes="180x180">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Клац: смена раскладки выделенного текста для macOS и Windows">
-<meta property="og:description" content="Выделил текст, отпустил ⌥⌘ на Mac или Win+Alt на Windows, раскладка сменилась. Бесплатно, открытый код, ваш текст никуда не уходит.">
+<meta property="og:description" content="Выделил текст, нажал ⌥⌘ на Mac или Win+Alt на Windows, раскладка сменилась. Бесплатно, открытый код, ваш текст никуда не уходит.">
 <meta property="og:locale" content="ru_RU">
 <!-- При выкладке подставить адрес сайта вместо ДОМЕН (делает скрипт деплоя) -->
 <link rel="canonical" href="https://ДОМЕН/">
 <meta property="og:url" content="https://ДОМЕН/">
-<meta property="og:image" content="https://ДОМЕН/assets/og-3.png">
+<meta property="og:image" content="https://ДОМЕН/assets/og-4.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Клац: ghbdtn превращается в привет">
@@ -384,7 +384,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
 <main>
 <section class="hero wrap-wide" id="try">
   <div class="intro">
-      <h1>Выделил текст, отпустил <span data-for="mac any">⌥⌘</span><span class="nw" data-for="win" hidden>Win+Alt</span>, раскладка сменилась.</h1>
+      <h1>Выделил текст, нажал <span data-for="mac any">⌥⌘</span><span class="nw" data-for="win" hidden>Win+Alt</span>, раскладка сменилась.</h1>
       <p class="lead">Клац живёт <span data-for="mac" hidden>в строке меню macOS</span><span data-for="win" hidden>рядом с часами в Windows</span><span data-for="any">в строке меню macOS или рядом с часами в Windows</span> и умеет одно: переводит выделенный текст в другую раскладку и переключает её в системе. Бонусом <span data-for="mac any">⌥⌘Z</span><span class="nw" data-for="win" hidden>Win+Alt+Z</span> меняет регистр. <span data-for="any">На Windows это Win+Alt и Win+Alt+Z. </span>Без автозамен и словарей, ваш текст Клац никуда не отправляет.</p>
       <div class="cta">
         <a class="btn" href="https://github.com/belokoz/klats/releases/download/v0.2.0/Klats-0.2.0.dmg" data-dmg>Скачать для macOS</a>
@@ -407,7 +407,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
         <textarea id="demo-field" rows="1" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Попробуйте Клац: текст, набранный не в той раскладке">ghbdtn vbh</textarea>
         <div class="overlay" id="demo-overlay" aria-hidden="true"></div>
       </div>
-      <button class="cap-btn" id="cap-btn" type="button" aria-label="Сменить раскладку выделенного: нажмите и отпустите">
+      <button class="cap-btn" id="cap-btn" type="button" aria-label="Сменить раскладку выделенного">
         <span class="cap" id="cap-alt"><span data-for="mac any">⌥</span><span data-for="win" hidden>Win</span></span><span class="cap" id="cap-cmd"><span data-for="mac any">⌘</span><span data-for="win" hidden>Alt</span></span>
       </button>
     </div>
@@ -417,7 +417,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
       <button class="chip" type="button" data-text="руддщ цщкдв">руддщ цщкдв</button>
       <button class="chip" type="button" data-text="пРИВЕТ, МИР" data-case>пРИВЕТ, МИР<span class="note">регистр</span></button>
       <span class="sp"></span>
-      <button class="cap-btn case" id="case-btn" type="button" title="Сменить регистр выделенного" aria-label="Сменить регистр выделенного: нажмите и отпустите"><span class="cap"><span data-for="mac any">⌥⌘Z</span><span data-for="win" hidden>Win+Alt+Z</span></span></button>
+      <button class="cap-btn case" id="case-btn" type="button" title="Сменить регистр выделенного" aria-label="Сменить регистр выделенного"><span class="cap"><span data-for="mac any">⌥⌘Z</span><span data-for="win" hidden>Win+Alt+Z</span></span></button>
     </div>
   </div>
 </section>
@@ -425,7 +425,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
 <section id="press" class="wrap-wide">
   <div class="wrap-text">
     <h2>Одно нажатие</h2>
-    <p class="lead">Клац не следит за тем, что вы печатаете. Он просыпается, когда вы отпускаете <span data-for="mac any">⌥⌘</span><span class="nw" data-for="win" hidden>Win+Alt</span>, и делает то, что вы сделали бы руками, только <span data-for="mac any">за 0,4 секунды</span><span data-for="win" hidden>быстрее</span>.</p>
+    <p class="lead">Клац не следит за тем, что вы печатаете. Он просыпается, когда вы нажимаете <span data-for="mac any">⌥⌘</span><span class="nw" data-for="win" hidden>Win+Alt</span>, и делает то, что вы сделали бы руками, только <span data-for="mac any">за 0,4 секунды</span><span data-for="win" hidden>быстрее</span>.</p>
   </div>
   <div class="story" id="story">
     <ol class="steps" id="steps">
@@ -502,7 +502,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
     </div>
     <div class="os-panel" id="install-win">
       <h3 class="os-title">На Windows</h3>
-      <p class="lead" data-for="mac any">Та же одна функция: выделил текст, отпустил Win+Alt, раскладка сменилась. Win+Alt+Z меняет регистр. Win и Alt стоят слева от пробела, как ⌥ и ⌘ на Mac.</p>
+      <p class="lead" data-for="mac any">Та же одна функция: выделил текст, нажал Win+Alt, раскладка сменилась. Win+Alt+Z меняет регистр. Win и Alt стоят слева от пробела, как ⌥ и ⌘ на Mac.</p>
       <div class="cta">
         <a class="btn" href="https://github.com/belokoz/klats/releases/download/windows-v0.1.0/Klats-0.1.0-windows-x64.exe" data-exe>Скачать для Windows</a>
       </div>
@@ -552,7 +552,7 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
           <aside>Почему так: у проекта нет платного аккаунта Apple. Код открыт, а подпись постоянная, поэтому обновления разрешение не сбрасывают.</aside>
         </div></li>
         <li><span class="n">3</span><div>
-          <p>Клац попросит «Универсальный доступ». Это единственное разрешение, и нужно оно для двух вещей: чтобы Клац видел, когда вы отпускаете ⌥⌘, и чтобы нажать за вас ⌘C и ⌘V. Включите Клац в списке, вернитесь в окно первого запуска и попробуйте на тестовом поле.</p>
+          <p>Клац попросит «Универсальный доступ». Это единственное разрешение, и нужно оно для двух вещей: чтобы Клац видел, когда вы нажимаете ⌥⌘, и чтобы нажать за вас ⌘C и ⌘V. Включите Клац в списке, вернитесь в окно первого запуска и попробуйте на тестовом поле.</p>
           <figure class="shot">
             <img src="assets/onboarding.png" width="420" height="479" loading="lazy" decoding="async" alt="Окно первого запуска Клаца: разрешение выдано, поле для пробы с текстом ghbdtn vbh, галочка автозапуска">
           </figure>
@@ -589,11 +589,11 @@ footer .fine { font-size: 13px; color: var(--ink-2); }
   </details>
   <details data-for="mac any">
     <summary>⌥⌘ не сломает ⌥⌘Esc, ⌥⌘D и перетаскивание?</summary>
-    <p>Нет. Клац срабатывает, только если вы отпустили ⌥⌘, не нажав между делом ни клавиши, ни кнопки мыши, и держали меньше секунды. Всё остальное работает как раньше. Сочетание меняется в настройках, в том числе на другое из одних модификаторов.</p>
+    <p>Нет. Клац срабатывает, только если ⌥⌘ нажаты сами по себе: без других клавиш и кнопок мыши, и не дольше секунды. Всё остальное работает как раньше. Сочетание меняется в настройках, в том числе на другое из одних модификаторов.</p>
   </details>
   <details data-for="win any">
     <summary>Win+Alt не откроет «Пуск»?</summary>
-    <p>Нет. <span data-for="any">Правило то же, что на Mac: </span>Клац срабатывает, только если вы отпустили Win+Alt, не нажав между делом ни клавиши, ни кнопки мыши, и держали меньше секунды. «Пуск» при этом не открывается, а Win+Alt+R и перетаскивание с Alt работают как раньше. Сочетание меняется в параметрах Клаца.</p>
+    <p>Нет. <span data-for="any">Правило то же, что на Mac: </span>Клац срабатывает, только если Win+Alt нажаты сами по себе: без других клавиш и кнопок мыши, и не дольше секунды. «Пуск» при этом не открывается, а Win+Alt+R и перетаскивание с Alt работают как раньше. Сочетание меняется в параметрах Клаца.</p>
   </details>
   <details>
     <summary>Бесплатно? Что потом?</summary>
@@ -710,10 +710,10 @@ const capBtn = $('#cap-btn'), capAlt = $('#cap-alt'), capCmd = $('#cap-cmd'), ca
 const KEYS = winLike ? 'Win+Alt' : '⌥⌘';
 const KEYS_Z = winLike ? 'Win+Alt+Z' : '⌥⌘Z';
 const LAYOUT_NAME = winLike ? { abc: 'США', ru: 'Русская' } : { abc: 'ABC', ru: 'Русская – ПК' };   // как раскладки зовёт система гостя
-const KEYS_HINT = chordEnabled ? 'зажмите ⌥⌘ и отпустите' : 'нажмите кнопку ' + KEYS;
+const KEYS_HINT = chordEnabled ? 'нажмите ⌥⌘' : 'нажмите кнопку ' + KEYS;
 // Имя кнопки для читалки и голосового управления начинается с клавиш, которыми её зовёт страница.
-capBtn.setAttribute('aria-label', KEYS + ': сменить раскладку выделенного, нажмите и отпустите');
-caseBtn.setAttribute('aria-label', KEYS_Z + ': сменить регистр выделенного, нажмите и отпустите');
+capBtn.setAttribute('aria-label', KEYS + ': сменить раскладку выделенного');
+caseBtn.setAttribute('aria-label', KEYS_Z + ': сменить регистр выделенного');
 caseBtn.title = KEYS_Z + ': сменить регистр выделенного';
 let currentLayout = 'abc';   // что показывает плашка «Раскладка системы»; в приложении так решается ничья
 let preselected = false;   // текст показан выделенным, хотя поле не в фокусе
@@ -963,7 +963,7 @@ $$('.chip[data-text]').forEach(chip => chip.addEventListener('click', () => {
 autosize();
 showFakeSelection();
 setLayoutPill('abc', false);
-if (chordEnabled) say('Выделите текст, зажмите ⌥⌘ и отпустите. Или нажмите кнопку.');
+if (chordEnabled) say('Выделите текст и нажмите ⌥⌘ на клавиатуре или кнопку рядом.');
 else say('Текст выделен: нажмите кнопку ' + KEYS + '.');
 // Гостю с телефона или Linux: на странице работает кнопка, а в Клаце для Windows клавиши свои. Гостю с Windows
 // подсказку про Win+Alt даёт разметка. Подсказка не исчезает после автопрогона.
