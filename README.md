@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/images/icon.png" width="128" alt="Клац"></p>
 <h1 align="center">Клац</h1>
 <p align="center">Выделил текст, нажал ⌥⌘ на Mac или Win+Alt на Windows, раскладка сменилась.<br>Бесплатная утилита для macOS и Windows с одной функцией. Без автозамен и словарей, ваш текст Клац никуда не отправляет.</p>
-<p align="center"><a href="https://github.com/belokoz/klats/releases/latest">Скачать для macOS</a> · <a href="https://github.com/belokoz/klats/releases/tag/windows-v0.1.0">Скачать для Windows</a> · <a href="README.en.md">English</a> · <a href="docs/HISTORY.md">Как это делалось</a></p>
+<p align="center"><a href="https://github.com/belokoz/klats/releases/latest">Скачать для macOS</a> · <a href="https://github.com/belokoz/klats/releases/tag/windows-v0.1.1">Скачать для Windows</a> · <a href="README.en.md">English</a> · <a href="docs/HISTORY.md">Как это делалось</a></p>
 
 ## Что умеет
 
@@ -49,7 +49,7 @@
 
 ## Установка на Windows
 
-1. Скачайте `Klats-0.1.0-windows-x64.exe` со страницы [релиза](https://github.com/belokoz/klats/releases/tag/windows-v0.1.0) и запустите. Браузер может предупредить, что такой файл скачивают редко: подтвердите сохранение.
+1. Скачайте `Klats-0.1.1-windows-x64.exe` со страницы [релиза](https://github.com/belokoz/klats/releases/tag/windows-v0.1.1) и запустите. Браузер может предупредить, что такой файл скачивают редко: подтвердите сохранение.
 2. Windows покажет окно «Система Windows защитила ваш компьютер»: у Клаца нет платной подписи, и SmartScreen не знает издателя. Нажмите «Подробнее», затем «Выполнить в любом случае». То же будет при каждом обновлении.
 3. Клац установится без прав администратора, в папку пользователя, и сразу запустится. В окне первого запуска попробуйте Win+Alt на тестовом поле.
 

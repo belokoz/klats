@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/images/icon.png" width="128" alt="Klats"></p>
 <h1 align="center">Клац (Klats)</h1>
 <p align="center">Select text, press ⌥⌘ on a Mac or Win+Alt on Windows, the keyboard layout is fixed.<br>A free utility for macOS and Windows with one job. No autocorrect, no dictionaries, and Klats never sends your text anywhere.</p>
-<p align="center"><a href="https://github.com/belokoz/klats/releases/latest">Download for macOS</a> · <a href="https://github.com/belokoz/klats/releases/tag/windows-v0.1.0">Download for Windows</a> · <a href="README.md">Русский</a> · <a href="docs/HISTORY.md">How it was made</a></p>
+<p align="center"><a href="https://github.com/belokoz/klats/releases/latest">Download for macOS</a> · <a href="https://github.com/belokoz/klats/releases/tag/windows-v0.1.1">Download for Windows</a> · <a href="README.md">Русский</a> · <a href="docs/HISTORY.md">How it was made</a></p>
 
 ## What it does
 
@@ -47,7 +47,7 @@ The command changes Klats and nothing else. If Terminal answers `Permission deni
 
 ## Install on Windows
 
-1. Download `Klats-0.1.0-windows-x64.exe` from the [release page](https://github.com/belokoz/klats/releases/tag/windows-v0.1.0) and run it. Your browser may warn that the file is not commonly downloaded: confirm that you want to keep it.
+1. Download `Klats-0.1.1-windows-x64.exe` from the [release page](https://github.com/belokoz/klats/releases/tag/windows-v0.1.1) and run it. Your browser may warn that the file is not commonly downloaded: confirm that you want to keep it.
 2. Windows shows “Windows protected your PC”: Klats has no paid signature, so SmartScreen does not know the publisher. Click **More info**, then **Run anyway**. The same happens with every update.
 3. Klats installs without administrator rights, into your user folder, and starts right away. Try Win+Alt on the sample field in the welcome window.
 
