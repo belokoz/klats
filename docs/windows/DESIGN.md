@@ -99,7 +99,7 @@
 
 Копировать и вставлять через `Ctrl+C` и `Ctrl+V` Клац начинает сам, если `SystemParametersInfo(SPI_GETSCREENREADER)` включён (NVDA и JAWS держат `Insert`), или если в реестре `CopyKeys = "ctrl"` — для тех, у кого `Insert` отключён переназначением.
 
-В VS Code и его родне (`Code.exe`, `Cursor.exe`, `VSCodium.exe`, `Windsurf.exe`) многострочный результат вставляется, только если копия пришла из редактора (есть формат `Chromium Web Custom MIME Data Format` с `vscode-editor-data`): встроенный терминал этой пометки не ставит, а вставка туда исполнила бы строки.
+В VS Code и его родне (`Code.exe`, `Cursor.exe`, `VSCodium.exe`, `Windsurf.exe`) многострочный результат не вставляется, если в копии нет ничего, кроме текста: ни `HTML Format`, ни `Chromium Web Custom MIME Data Format`. Так копирует встроенный терминал (xterm.js кладёт только `text/plain`), а вставка туда исполнила бы строки. Редактор добавляет `vscode-editor-data`, веб-вью и поля с форматированием (чат Claude Code) — HTML. Простой `textarea` в веб-вью копирует как терминал, и многострочное оттуда тоже не конвертируется.
 
 ### Буфер обмена
 

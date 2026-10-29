@@ -347,6 +347,7 @@ std::optional<CopiedText> readCopiedText(HWND owner, HANDLE cancel, HKL layout) 
     static const UINT columnSelect = RegisterClipboardFormatW(L"MSDEVColumnSelect");
     static const UINT blockType = RegisterClipboardFormatW(L"Borland IDE Block Type");
     static const UINT customData = RegisterClipboardFormatW(L"Chromium Web Custom MIME Data Format");
+    static const UINT html = RegisterClipboardFormatW(L"HTML Format");
 
     // Where each text format sits in the list, and JetBrains' copy options, named after a Java class.
     int position = 0, textAt = -1, localeAt = -1, unicodeAt = -1;
@@ -412,11 +413,12 @@ std::optional<CopiedText> readCopiedText(HWND owner, HANDLE cancel, HKL layout) 
     if (!copied.columnCopy && IsClipboardFormatAvailable(blockType)) {
         if (auto bytes = readBytes(blockType)) copied.columnCopy = !bytes->empty() && (*bytes)[0] == 0x02;
     }
+    // VS Code's terminal (xterm.js) copies bare text. Its editor adds Chromium's custom data, web views
+    // and rich text fields (the Claude Code chat among them) add HTML.
+    copied.plainText = !IsClipboardFormatAvailable(html) && !IsClipboardFormatAvailable(customData);
     if (IsClipboardFormatAvailable(customData)) {
-        // VS Code's editor stores «vscode-editor-data» (with isFromEmptySelection) in Chromium's
-        // custom data; its terminal does not.
+        // VS Code's editor stores «vscode-editor-data» there, with isFromEmptySelection.
         if (auto bytes = readBytes(customData)) {
-            copied.fromCodeEditor = containsUtf16(*bytes, L"vscode-editor-data");
             if (containsUtf16(*bytes, L"\"isFromEmptySelection\":true")) copied.lineCopy = true;
             SecureZeroMemory(bytes->data(), bytes->size());
         }

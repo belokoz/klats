@@ -337,7 +337,7 @@ void Pipeline::run(Action action, bool fromMenu, DWORD postedAt) {
         return;
     }
     bool multiline = converted.find_first_of(L"\r\n") != std::wstring::npos;
-    if (multiline && isCodeEditor(foreground.exe) && !copied->fromCodeEditor) {
+    if (multiline && isCodeEditor(foreground.exe) && copied->plainText) {
         // Probably VS Code's terminal: pasting there runs every line as a command.
         restore(copied->sequence);
         report.outcome = L"nothing done: several lines from a terminal inside the editor";

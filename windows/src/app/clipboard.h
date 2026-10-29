@@ -70,7 +70,7 @@ struct CopiedText {
     bool tooLarge = false;        // longer than Klats converts; `text` stays empty
     bool lineCopy = false;        // an editor copied the whole line because nothing was selected
     bool columnCopy = false;      // a column (box) selection, to be pasted back as a column
-    bool fromCodeEditor = false;  // VS Code's editor made the copy (its terminal does not mark copies)
+    bool plainText = false;       // nothing but text: VS Code's terminal copies so, its editor and web views add more
 };
 // `layout` is the keyboard layout of the program that copied.
 std::optional<CopiedText> readCopiedText(HWND owner, HANDLE cancel, HKL layout);
